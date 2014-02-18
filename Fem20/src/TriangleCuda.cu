@@ -114,10 +114,9 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 	//   4. Let's compute coordinates of across point of this two lines.
 	//   Are lines parallel?
 
-	if (fabs(b_1LC * a_2LC - b_2LC * a_1LC) < 1.e-14) {
+	if (fabs(b_1LC * a_2LC - b_2LC * a_1LC) < 1.e-14) 
+	{
 		//   Not checked.
-
-
 
 		//   Pseudo case. Anyway I need to compute some values.
 
@@ -143,12 +142,14 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 		secondT.second[0] = thNew[0];
 		secondT.second[1] = thNew[1];
 
-		if (scalProd >= 0.) {
+		if (scalProd >= 0.) 
+		{
 			secondT.third[0] = gaNew[0];
 			secondT.third[1] = gaNew[1];
 		}
 
-		if (scalProd < 0.) {
+		if (scalProd < 0.) 
+		{
 			secondT.third[0] = alNew[0];
 			secondT.third[1] = alNew[1];
 		}
@@ -160,9 +161,11 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 	AcrP[1] = (a_1LC * c_2LC - a_2LC * c_1LC)
 		/ (-b_1LC * a_2LC + b_2LC * a_1LC);
 
-	if (((beNew[1] - AcrP[1]) * (thNew[1] - AcrP[1])) > 0.) {
+	if (((beNew[1] - AcrP[1]) * (thNew[1] - AcrP[1])) > 0.) 
+	{
 
-		if (((alNew[0] - AcrP[0]) * (gaNew[0] - AcrP[0])) > 0.) {
+		if (((alNew[0] - AcrP[0]) * (gaNew[0] - AcrP[0])) > 0.)
+		{
 
 			firstT.first[0] = alNew[0];
 			firstT.first[1] = alNew[1];
@@ -204,7 +207,8 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 
 		//   Second criterion. Second case.
 
-		if (((alNew[0] - AcrP[0]) * (gaNew[0] - AcrP[0])) <= 0.) {
+		if (((alNew[0] - AcrP[0]) * (gaNew[0] - AcrP[0])) <= 0.)
+		{
 			vectAlBe[0] = beNew[0] - alNew[0];
 			vectAlBe[1] = beNew[1] - alNew[1];
 			vectAlTh[0] = thNew[0] - alNew[0];
@@ -212,7 +216,8 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 
 			vectProdOz = vectAlBe[0] * vectAlTh[1] - vectAlBe[1] * vectAlTh[0];
 
-			if (vectProdOz < 0.) {
+			if (vectProdOz < 0.) 
+			{
 				//   The vertex "beNew" is NOT in triangle "alNew - gaNew - thNew".
 				//   Pseudo case. Anyway I need to find some solution. So
 
@@ -235,7 +240,8 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 				return;
 			}
 
-			if (vectProdOz >= 0.) {
+			if (vectProdOz >= 0.) 
+			{
 				//  It's all write. We have a good concave quadrangle.
 				//   Now let's compute all vertices which I need.
 				//   First triangle.
@@ -264,8 +270,10 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 
 	//  Now let's consider SECOND case 5.b "(  (beNew[1] - AcrP[1])*(thNew[1] - AcrP[1])  )  <= 0."
 
-	if (((beNew[1] - AcrP[1]) * (thNew[1] - AcrP[1])) <= 0.) {
-		if (((alNew[0] - AcrP[0]) * (gaNew[0] - AcrP[0])) > 0.) {
+	if (((beNew[1] - AcrP[1]) * (thNew[1] - AcrP[1])) <= 0.) 
+	{
+		if (((alNew[0] - AcrP[0]) * (gaNew[0] - AcrP[0])) > 0.) 
+		{
 			//  It means the across point IS NOT between "alNew" and "gaNew" vertices by Ox-axis?
 
 			//   O.K. the quadrangle IS NOT CONVEX. Is it concave or pseudo? Third criterion.
@@ -277,7 +285,8 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 
 			vectProdOz = vectBeGa[0] * vectBeAl[1] - vectBeGa[1] * vectBeAl[0];
 
-			if (vectProdOz >= 0.) {
+			if (vectProdOz >= 0.)
+			{
 
 				//   The quadrangle is concave. First triangle.
 
@@ -300,7 +309,8 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 				return;
 			}
 
-			if (vectProdOz < 0.) {
+			if (vectProdOz < 0.) 
+			{
 
 				//   This concave quadrangle do has NO write anticlockwise vertices sequence order. It's pseudo.
 
@@ -411,7 +421,7 @@ TriangleResult get_triangle_type(ComputeParameters p, int gridSize, int blockSiz
 		copy_offset = i * p.get_inner_chuck_size();
 		tr_size = sizeof(Triangle) * length;
 		d_xy_size = sizeof(double) * p.get_chunk_size();
-		cp_start_index = (i*p.get_inner_chuck_size()) % p.get_inner_x_size();
+		cp_start_index = copy_offset % p.get_inner_x_size();
 		result.length = length;
 		result.setOffset(i);
 
@@ -425,15 +435,14 @@ TriangleResult get_triangle_type(ComputeParameters p, int gridSize, int blockSiz
 		get_angle_type_kernel<<<gridSize, blockSize>>>(result, p);
 		cudaDeviceSynchronize();
 
-		memcpy(&first [copy_offset],  result.f, tr_size);
-		memcpy(&second[copy_offset],  result.s, tr_size);
-
-		cudaFree(p.x);
-		cudaFree(p.y);
-		cudaFree(result.f);
-		cudaFree(result.s);
+		memcpy(&first [copy_offset], result.f, tr_size);
+		memcpy(&second[copy_offset], result.s, tr_size);
 	}
 
+	cudaFree(p.x);
+	cudaFree(p.y);
+	cudaFree(result.f);
+	cudaFree(result.s);
 	cudaDeviceReset();
 	result.f = first;
 	result.s = second;
