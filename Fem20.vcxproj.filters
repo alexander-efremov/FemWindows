@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{e13038f3-acf2-4cbf-bc78-5228ce77a6cf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="headers">
+      <UniqueIdentifier>{a5c006ee-6ecf-4683-831a-07ec2b1b27ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{4abb9b05-aed5-4ed2-809e-6939082510e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cuda">
+      <UniqueIdentifier>{eca1520a-a81f-4a6e-a0a1-2d0cd0422800}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="headers\Common.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Const.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Logger.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\LowOrdOper.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\LowOrdOperCuda.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\OriginPrint.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\SpecialPrint.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\XmlConfigurator.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\Timer.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="utils\Common.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\Logger.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\OriginPrint.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\SpecialPrint.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\XmlConfigurator.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LowOrdOper.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UnitTests.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="src\cuda\LowOrdOperCuda.cu">
+      <Filter>cuda</Filter>
+    </CudaCompile>
+  </ItemGroup>
+</Project>
