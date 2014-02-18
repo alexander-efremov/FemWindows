@@ -431,8 +431,6 @@ TriangleResult get_triangle_type(ComputeParameters p, int gridSize, int blockSiz
 		get_angle_type_kernel<<<gridSize, blockSize>>>(result, p);
 		cudaDeviceSynchronize();
 
-
-		
 		memcpy(&first [copy_offset],  result.f, tr_size);
 		memcpy(&second[copy_offset], result.s, tr_size);
 
