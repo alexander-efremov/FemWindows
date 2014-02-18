@@ -417,22 +417,21 @@ TriangleResult get_triangle_type(ComputeParameters p, int gridSize, int blockSiz
 		tr_size = sizeof(Triangle) * length;
 		d_xy_size = sizeof(double) * p.get_chunk_size();
 		cp_start_index = (i*p.get_inner_chuck_size()) % p.get_inner_x_size();
-
-		checkCuda(cudaMallocManaged(&result.f, tr_size));
-		checkCuda(cudaMallocManaged(&result.s, tr_size));
-		checkCuda(cudaMallocManaged(&p.x, d_xy_size));
-		checkCuda(cudaMallocManaged(&p.y, d_xy_size));
-		memcpy(p.x, &x[cp_start_index], d_xy_size);
-		memcpy(p.y, &y[cp_start_index], d_xy_size);
-
 		result.length = length;
 		result.setOffset(i);
+
+		cudaMallocManaged(&result.f, tr_size);
+		cudaMallocManaged(&result.s, tr_size);
+		cudaMallocManaged(&p.x, d_xy_size);
+		cudaMallocManaged(&p.y, d_xy_size);
+		memcpy(p.x, &x[cp_start_index], d_xy_size);
+		memcpy(p.y, &y[cp_start_index], d_xy_size);
 
 		get_angle_type_kernel<<<gridSize, blockSize>>>(result, p);
 		cudaDeviceSynchronize();
 
 		memcpy(&first [copy_offset],  result.f, tr_size);
-		memcpy(&second[copy_offset], result.s, tr_size);
+		memcpy(&second[copy_offset],  result.s, tr_size);
 
 		cudaFree(p.x);
 		cudaFree(p.y);
