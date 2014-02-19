@@ -91,7 +91,7 @@ public:
 
 		if (size == 21)
 		{
-			return size * size;
+			return size;
 		}
 		else if (size == 41)
 		{
@@ -102,24 +102,20 @@ public:
 			return size;
 		}
 		else if (size == 161)
-
 		{
-			//			return size;
-			return size * 23;
+			return size;
 		}
 		else if (size == 321)
 		{
 			return size;
 		}
 		else if (size == 641)
-
 		{
 			return size;
 		}
 		else if (size == 1281)
 		{
-			//return size * 183;
-			return size ;
+			return size;
 		}
 		else if (size == 2561)
 		{
@@ -127,8 +123,8 @@ public:
 		}
 		else if (size == 5121)
 		{
-			//return size / 3;
-			return size*569; // 5121 / 9 = 569 - столько ядер запустится для расчета триангуляции
+			return size;
+			//return size*569; // 5121 / 9 = 569 - столько ядер запустится для расчета триангуляции
 		}
 		return 0;
 	}

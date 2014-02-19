@@ -10,12 +10,6 @@
 
 //#define PRINT_VALUES
 
-__device__ double d_u_function_quadrangle(double par_b, double t, double x,
-										  double y) 
-{
-	return par_b * y * (1. - y) * (C_pi_device / 2. + atan(-x));
-}
-
 __device__ double d_v_function_quadrangle(double lbDom, double rbDom,
 										  double bbDom, double ubDom, double t, double x, double y) 
 {
@@ -54,25 +48,19 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 	gamma[1] = (p.y[p.j] + p.y[p.j + 1]) / 2.;
 	theta[1] = (p.y[p.j] + p.y[p.j + 1]) / 2.;
 
-	// TODO remove
-#ifdef PRINT_VALUES1
-	//if (p.j ==9 && p.i == 9)
-	printf("cuda i = %d \n %f %f %f %f\ncuda j = %d \n %f %f %f %f\n", p.i,
-		alpha[0], betta[0], gamma[0], theta[0], p.j, alpha[1], betta[1],
-		gamma[1], theta[1]);
-#endif
-
 	//   2. Now let's compute new coordinates on the previous time level of alpha, betta, gamma, theta points.
 	//  alNew.
-
-	u = d_u_function_quadrangle(p.b, p.currentTimeLevel * p.tau, alpha[0], alpha[1]);
+	
+	//u = d_u_function_quadrangle(p.b, alpha[0], alpha[1]);
+	u = p.b * alpha[1] * (1. - alpha[1]) * (C_pi_device / 2. + atan(alpha[0]));
 	v = d_v_function_quadrangle(p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau,
 		alpha[0], alpha[1]);
 	alNew[0] = alpha[0] - p.tau * u;
 	alNew[1] = alpha[1] - p.tau * v;
 
 	//  beNew.
-	u = d_u_function_quadrangle(p.b, p.currentTimeLevel * p.tau, betta[0], betta[1]);
+	//u = d_u_function_quadrangle(p.b, betta[0], betta[1]);
+	u = p.b * betta[1] * (1. - betta[1]) * (C_pi_device / 2. + atan(betta[0]));
 	v = d_v_function_quadrangle(p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau,
 		betta[0], betta[1]);
 	beNew[0] = betta[0] - p.tau * u;
@@ -80,14 +68,16 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 
 	//  gaNew.
 
-	u = d_u_function_quadrangle(p.b, p.currentTimeLevel * p.tau, gamma[0], gamma[1]);
+	//u = d_u_function_quadrangle(p.b, gamma[0], gamma[1]);
+	u = p.b * gamma[1] * (1. - gamma[1]) * (C_pi_device / 2. + atan(gamma[0]));
 	v = d_v_function_quadrangle(p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau,
 		gamma[0], gamma[1]);
 	gaNew[0] = gamma[0] - p.tau * u;
 	gaNew[1] = gamma[1] - p.tau * v;
 
 	//  thNew.
-	u = d_u_function_quadrangle(p.b, p.currentTimeLevel * p.tau, theta[0], theta[1]);
+	//u = d_u_function_quadrangle(p.b, theta[0], theta[1]);
+	u = p.b * theta[1] * (1. - theta[1]) * (C_pi_device / 2. + atan(theta[0]));
 	v = d_v_function_quadrangle(p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau,
 		theta[0], theta[1]);
 	thNew[0] = theta[0] - p.tau * u;

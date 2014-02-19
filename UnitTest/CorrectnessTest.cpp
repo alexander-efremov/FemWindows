@@ -282,8 +282,7 @@ protected:
 			p.currentTimeLevel = 1;
 
 			cout << "chunk = " << p.get_chunk_size() << std::endl;
-			TriangleResult gpu = get_triangle_type(p, gridSize,
-				blockSize);
+			TriangleResult gpu = get_triangle_type(p, gridSize, blockSize);
 
 			// get cpu data
 			Triangle f = Triangle();
@@ -340,22 +339,17 @@ TEST_F(GpuFemTest, DISABLED_GpuTestModel11)
 
 TEST_F(GpuFemTest, Gpu_h_quadrAngleType)
 {
-
-	int finishLevel = 1;
+	int finishLevel = 4;
 	int startLevel = 0;
-
 	int gridSize = 512;
 	int blockSize = 1024;
-
 	int needPrint = 0;
-	//needPrint = 1;
-	TestTriangleTypeInternal(startLevel, finishLevel, gridSize,
-		blockSize, needPrint);
+
+	TestTriangleTypeInternal(startLevel, finishLevel, gridSize, blockSize, needPrint);
 }
 
 TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 {
-
 	int gridSize = 512;
 	int blockSize = 1024;
 	int level = 0;
@@ -387,7 +381,6 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 				p.j = j;
 				p.currentTimeLevel = t;
 				int result = h_quadrAngleType(p, f, s);
-				//std::cout  << "TL= " << t << " iteration = " <<  j*y_size + i<< "\n" << flush;
 			}
 		}
 	}

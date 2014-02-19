@@ -37,6 +37,7 @@ GTEST_API_ int main(int argc, char **argv)
 	printf("Running main() from gtest_main.cc\n");
 	testing::InitGoogleTest(&argc, argv);
 	int a = RUN_ALL_TESTS();
-	std::cin.get();
+	if (a != 0) 
+		std::cin.get();
 	return a;
 }
