@@ -8,21 +8,9 @@
 
 #define DEBUG
 
-//#define PRINT_VALUES
-
-__device__ double d_v_function_quadrangle(double lbDom, double rbDom,
-										  double bbDom, double ubDom, double t, double x, double y) 
-{
-	return atan(
-		(x - lbDom) * (x - rbDom) * (1. + t) / 10. * (y - ubDom)
-		* (y - bbDom));
-}
-
 __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
-								 Triangle& secondT) 
+								 Triangle& secondT, double* x, double* y) 
 {
-
-
 	double alpha[2], betta[2], gamma[2], theta[2]; //   -  Vertexes of square. Anticlockwise order from left bottom vertex.
 	double u, v;                           //   -  Items of velocity components.
 	double alNew[2], beNew[2], gaNew[2], thNew[2]; //   -  New positions of vertexes. Vertexes of quadrangle.
@@ -38,31 +26,34 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 	double scalProd;                   //   -  Scalar production of two vectors.
 
 	//   1. First of all let's compute coordinates of square vertexes.
-	alpha[0] = (p.x[p.i - 1] + p.x[p.i]) / 2.;
-	betta[0] = (p.x[p.i + 1] + p.x[p.i]) / 2.;
-	gamma[0] = (p.x[p.i + 1] + p.x[p.i]) / 2.;
-	theta[0] = (p.x[p.i - 1] + p.x[p.i]) / 2.;
+	alpha[0] = (x[p.i - 1] + x[p.i]) / 2.;
+	betta[0] = (x[p.i + 1] + x[p.i]) / 2.;
+	gamma[0] = (x[p.i + 1] + x[p.i]) / 2.;
+	theta[0] = (x[p.i - 1] + x[p.i]) / 2.;
 
-	alpha[1] = (p.y[p.j] + p.y[p.j - 1]) / 2.;
-	betta[1] = (p.y[p.j] + p.y[p.j - 1]) / 2.;
-	gamma[1] = (p.y[p.j] + p.y[p.j + 1]) / 2.;
-	theta[1] = (p.y[p.j] + p.y[p.j + 1]) / 2.;
+	alpha[1] = (y[p.j] + y[p.j - 1]) / 2.;
+	betta[1] = (y[p.j] + y[p.j - 1]) / 2.;
+	gamma[1] = (y[p.j] + y[p.j + 1]) / 2.;
+	theta[1] = (y[p.j] + y[p.j + 1]) / 2.;
 
 	//   2. Now let's compute new coordinates on the previous time level of alpha, betta, gamma, theta points.
 	//  alNew.
-	
+
 	//u = d_u_function_quadrangle(p.b, alpha[0], alpha[1]);
 	u = p.b * alpha[1] * (1. - alpha[1]) * (C_pi_device / 2. + atan(alpha[0]));
-	v = d_v_function_quadrangle(p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau,
-		alpha[0], alpha[1]);
+
+	v = atan(
+		(alpha[0] - p.lb) * (alpha[0] - p.rb) * (1. + p.currentTimeLevel * p.tau) / 10. * (alpha[1] - p.ub)
+		* (alpha[1] - p.bb));
 	alNew[0] = alpha[0] - p.tau * u;
 	alNew[1] = alpha[1] - p.tau * v;
 
 	//  beNew.
 	//u = d_u_function_quadrangle(p.b, betta[0], betta[1]);
 	u = p.b * betta[1] * (1. - betta[1]) * (C_pi_device / 2. + atan(betta[0]));
-	v = d_v_function_quadrangle(p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau,
-		betta[0], betta[1]);
+	v = atan(
+		(betta[0] - p.lb) * (betta[0] - p.rb) * (1. + p.currentTimeLevel * p.tau) / 10. * (betta[1] - p.ub)
+		* (betta[1] - p.bb));
 	beNew[0] = betta[0] - p.tau * u;
 	beNew[1] = betta[1] - p.tau * v;
 
@@ -70,16 +61,18 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 
 	//u = d_u_function_quadrangle(p.b, gamma[0], gamma[1]);
 	u = p.b * gamma[1] * (1. - gamma[1]) * (C_pi_device / 2. + atan(gamma[0]));
-	v = d_v_function_quadrangle(p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau,
-		gamma[0], gamma[1]);
+	v = atan(
+		(gamma[0] - p.lb) * (gamma[0] - p.rb) * (1. + p.currentTimeLevel * p.tau) / 10. * (gamma[1] - p.ub)
+		* (gamma[1] - p.bb));
 	gaNew[0] = gamma[0] - p.tau * u;
 	gaNew[1] = gamma[1] - p.tau * v;
 
 	//  thNew.
 	//u = d_u_function_quadrangle(p.b, theta[0], theta[1]);
 	u = p.b * theta[1] * (1. - theta[1]) * (C_pi_device / 2. + atan(theta[0]));
-	v = d_v_function_quadrangle(p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau,
-		theta[0], theta[1]);
+	v =  atan(
+		(theta[0] - p.lb) * (theta[0] - p.rb) * (1. + p.currentTimeLevel * p.tau) / 10. * (theta[1] - p.ub)
+		* (theta[1] - p.bb));
 	thNew[0] = theta[0] - p.tau * u;
 	thNew[1] = theta[1] - p.tau * v;
 
@@ -383,61 +376,54 @@ __device__ void d_quadrAngleType(ComputeParameters& p, Triangle& firstT,
 
 }
 
-__global__ void get_angle_type_kernel(TriangleResult result, ComputeParameters p) {
-	const int offset = hemiGetElementOffset();
-	const int stride = hemiGetElementStride();
+__global__ void get_angle_type_kernel(ComputeParameters p, Triangle* f, Triangle* s, double *x, double *y, 
+									  int length, int x_length, int offset) {
+										  const int element_offset = hemiGetElementOffset();
+										  const int stride = hemiGetElementStride();
 
-	for (int opt = offset; opt < result.length; opt += stride) {
-		p.i = (opt % result.x_length + 1) ;
-		p.j = (opt / result.x_length + 1) + (int) (result.offset / result.x_length);
-		d_quadrAngleType(p, result.f[opt], result.s[opt]);
-	}
+										  for (int opt = element_offset; opt < length; opt += stride) {
+											  p.i = (opt % x_length + 1) ;
+											  p.j = (opt / x_length + 1) + (int) (offset / x_length);
+											  d_quadrAngleType(p, f[opt], s[opt], x, y);
+										  }
 }
 
-TriangleResult get_triangle_type(ComputeParameters p, int gridSize, int blockSize) 
+void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize, int blockSize) 
 {
-	int d_xy_size(0), offset(0), length(0), copy_offset(0), cp_start_index(0), tr_size(0);
+	int d_xy_size(0), offset(0), length(0), copy_offset(0), tr_size(0);
+	Triangle *first = NULL, *second = NULL;
+	double *x = NULL, *y = NULL;
+	d_xy_size = sizeof(double) * p.get_chunk_size();
+	cudaMallocManaged(&x, d_xy_size);
+	cudaMallocManaged(&y, d_xy_size);
 
-	Triangle* first = new Triangle[p.get_inner_matrix_size()];
-	Triangle* second = new Triangle[p.get_inner_matrix_size()];
-	TriangleResult result = TriangleResult(p);
-	double* x = p.x;
-	double* y = p.y;
-
-	for (int i = 0; i < p.get_part_count(); ++i) 
+	for (p.reset_time_counter(); p.can_iterate_over_time_level(); p.inc_time_level())
 	{
-		offset = i * p.get_chunk_size();
-		length = std::min(p.get_inner_chuck_size(), p.size  - offset);
-		copy_offset = i * p.get_inner_chuck_size();
-		tr_size = sizeof(Triangle) * length;
-		d_xy_size = sizeof(double) * p.get_chunk_size();
-		cp_start_index = copy_offset % p.get_inner_x_size();
-		result.length = length;
-		result.setOffset(i);
+		for (int i = 0; i < p.get_part_count(); ++i) 
+		{
+			offset = i * p.get_chunk_size();
+			length = std::min(p.get_inner_chuck_size(), p.size  - offset);
+			copy_offset = i * p.get_inner_chuck_size();
+			tr_size = sizeof(Triangle) * length;
+			
+			cudaMallocManaged(&first, tr_size);
+			cudaMallocManaged(&second, tr_size);
+			
+			memcpy(x, p.x, d_xy_size);
+			memcpy(y, p.y, d_xy_size);
 
-		cudaMallocManaged(&result.f, tr_size);
-		cudaMallocManaged(&result.s, tr_size);
-		cudaMallocManaged(&p.x, d_xy_size);
-		cudaMallocManaged(&p.y, d_xy_size);
-		memcpy(p.x, &x[cp_start_index], d_xy_size);
-		memcpy(p.y, &y[cp_start_index], d_xy_size);
+			get_angle_type_kernel<<<gridSize, blockSize>>>(p, first, second, x, y, length, result->x_length, p.get_inner_chuck_size() * i);
+			cudaDeviceSynchronize();
 
-		get_angle_type_kernel<<<gridSize, blockSize>>>(result, p);
-		cudaDeviceSynchronize();
-
-		memcpy(&first [copy_offset], result.f, tr_size);
-		memcpy(&second[copy_offset], result.s, tr_size);
+			memcpy(&result->f[copy_offset], first, tr_size);
+			memcpy(&result->s[copy_offset], second, tr_size);
+			
+			cudaFree(first);
+			cudaFree(second);
+		}
 	}
-
-	cudaFree(p.x);
-	cudaFree(p.y);
-	cudaFree(result.f);
-	cudaFree(result.s);
+	cudaFree(x);
+	cudaFree(y);
 	cudaDeviceReset();
-	result.f = first;
-	result.s = second;
-	p.x = x;
-	p.y = y;
-	return result;
 }
 

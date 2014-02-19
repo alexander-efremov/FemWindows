@@ -39,7 +39,7 @@ struct ComputeResults
 struct ComputeParameters
 {
 private:
-
+	int time_i;
 	int get_real_x_size()
 	{
 		return x_size + 1;
@@ -79,6 +79,21 @@ public:
 	int get_inner_chuck_size()
 	{
 		return get_chunk_size() - 2;
+	}
+
+	void reset_time_counter()
+	{
+		time_i = 0;
+	}
+
+	bool can_iterate_over_time_level()
+	{
+		return time_i < t_count;
+	}
+
+	void inc_time_level()
+	{
+		time_i++;
 	}
 
 	int get_chunk_size()
@@ -223,10 +238,14 @@ public:
 		x_length = param.x_size - 1;
 		y_length = param.y_size - 1;
 		chunk = param.get_inner_chuck_size();
+		f = new Triangle[param.get_inner_matrix_size()];
+		s = new Triangle[param.get_inner_matrix_size()];
 	}
 
-	TriangleResult()
+	~TriangleResult()
 	{
+		delete[] f;
+		delete[] s;
 	}
 
 	void setOffset(int part_index)
