@@ -32,8 +32,6 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 	double vectAlTh[2]; //   -  Vectors for computing vertexes sequence order by vector production.
 	double vectBeGa[2]; //   -  Vectors for computing vertexes sequence order by vector production.
 	double vectBeAl[2]; //   -  Vectors for computing vertexes sequence order by vector production.
-	double vectProdOz;                      //   -  Z-axis of vector production.
-	double scalProd;                   //   -  Scalar production of two vectors.
 
 	//   1. First of all let's compute coordinates of square vertexes.
 	alpha[0] = (x[i - 1] + x[i]) / 2.;
@@ -58,7 +56,7 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 	alNew[1] = alpha[1] - c_tau * v;
 
 	//  beNew.
-	
+
 	u = c_b * betta[1] * (1. - betta[1]) * (C_pi_device / 2. + atan(betta[0]));
 	v = atan(
 		(betta[0] - c_lb) * (betta[0] - c_rb) * (1. + c_tau_to_current_time_level) / 10. * (betta[1] - c_ub)
@@ -68,7 +66,7 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 	//  gaNew.
 
-	
+
 	u = c_b * gamma[1] * (1. - gamma[1]) * (C_pi_device / 2. + atan(gamma[0]));
 	v = atan(
 		(gamma[0] - c_lb) * (gamma[0] - c_rb) * (1. + c_tau_to_current_time_level) / 10. * (gamma[1] - c_ub)
@@ -77,7 +75,7 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 	gaNew[1] = gamma[1] - c_tau * v;
 
 	//  thNew.
-	
+
 	u = c_b * theta[1] * (1. - theta[1]) * (C_pi_device / 2. + atan(theta[0]));
 	v =  atan(
 		(theta[0] - c_lb) * (theta[0] - c_rb) * (1. + c_tau_to_current_time_level) / 10. * (theta[1] - c_ub)
@@ -128,24 +126,21 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 		vectBeTh[0] = thNew[0] - beNew[0];
 		vectBeTh[1] = thNew[1] - beNew[1];
 
-		scalProd = vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1];
 		secondT.first[0] = beNew[0];
 		secondT.first[1] = beNew[1];
 		secondT.second[0] = thNew[0];
 		secondT.second[1] = thNew[1];
 
-		if (scalProd >= 0.) 
+		if (vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1] >= 0.) 
 		{
 			secondT.third[0] = gaNew[0];
 			secondT.third[1] = gaNew[1];
 		}
-
-		if (scalProd < 0.) 
+		else if (vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1] < 0.) 
 		{
 			secondT.third[0] = alNew[0];
 			secondT.third[1] = alNew[1];
 		}
-
 		return;
 	}
 
@@ -181,14 +176,10 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 			vectBeTh[0] = thNew[0] - beNew[0];
 			vectBeTh[1] = thNew[1] - beNew[1];
 
-			scalProd = vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1];
-
-			if (scalProd >= 0.) {
+			if (vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1] >= 0.) {
 				secondT.third[0] = gaNew[0];
 				secondT.third[1] = gaNew[1];
-			}
-
-			if (scalProd < 0.) {
+			} else if (vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1] < 0.) {
 				secondT.third[0] = alNew[0];
 				secondT.third[1] = alNew[1];
 			}
@@ -206,9 +197,7 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 			vectAlTh[0] = thNew[0] - alNew[0];
 			vectAlTh[1] = thNew[1] - alNew[1];
 
-			vectProdOz = vectAlBe[0] * vectAlTh[1] - vectAlBe[1] * vectAlTh[0];
-
-			if (vectProdOz < 0.) 
+			if (vectAlBe[0] * vectAlTh[1] - vectAlBe[1] * vectAlTh[0] < 0.) 
 			{
 				//   The vertex "beNew" is NOT in triangle "alNew - gaNew - thNew".
 				//   Pseudo case. Anyway I need to find some solution. So
@@ -231,8 +220,7 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 				return;
 			}
-
-			if (vectProdOz >= 0.) 
+			else if (vectAlBe[0] * vectAlTh[1] - vectAlBe[1] * vectAlTh[0] >= 0.) 
 			{
 				//  It's all write. We have a good concave quadrangle.
 				//   Now let's compute all vertices which I need.
@@ -275,9 +263,7 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 			vectBeAl[0] = alNew[0] - beNew[0];
 			vectBeAl[1] = alNew[1] - beNew[1];
 
-			vectProdOz = vectBeGa[0] * vectBeAl[1] - vectBeGa[1] * vectBeAl[0];
-
-			if (vectProdOz >= 0.)
+			if (vectBeGa[0] * vectBeAl[1] - vectBeGa[1] * vectBeAl[0] >= 0.)
 			{
 
 				//   The quadrangle is concave. First triangle.
@@ -300,8 +286,7 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 				return;
 			}
-
-			if (vectProdOz < 0.) 
+			else if (vectBeGa[0] * vectBeAl[1] - vectBeGa[1] * vectBeAl[0] < 0.) 
 			{
 
 				//   This concave quadrangle do has NO write anticlockwise vertices sequence order. It's pseudo.
@@ -339,9 +324,7 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 			vectAlTh[1] = thNew[1] - alNew[1];
 
-			vectProdOz = vectAlBe[0] * vectAlTh[1] - vectAlBe[1] * vectAlTh[0];
-
-			if (vectProdOz >= 0.) {
+			if (vectAlBe[0] * vectAlTh[1] - vectAlBe[1] * vectAlTh[0] >= 0.) {
 
 				//   Convex quadrangle DO HAS WRITE anticlockwise vertices sequence order. It's convex.
 
@@ -359,13 +342,12 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 				secondT.second[0] = thNew[0];
 				secondT.second[1] = thNew[1];
 				secondT.third[0] = gaNew[0];
-				secondT.third[1] = gaNew[1];
+				secondT.third[1] = gaNew[1]; 
 
 				return;
-			}
-
-			if (vectProdOz < 0.) {
-
+			} 
+			else if (vectAlBe[0] * vectAlTh[1] - vectAlBe[1] * vectAlTh[0] < 0.)
+			{
 				firstT.first[0] = alNew[0];
 				firstT.first[1] = alNew[1];
 				firstT.second[0] = beNew[0];
@@ -382,17 +364,16 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 			}
 		}
 	}
-
 }
 
-__global__ void get_angle_type_kernel(Triangle* f, Triangle* s, 
+__global__ void get_angle_type_kernel(Triangle* firstT, Triangle* secondT, 
 									  double *x, 
 									  double *y,
 									  int offset) 
 {
 	for (int opt = hemiGetElementOffset(); opt < c_length; opt += hemiGetElementStride()) 
 	{
-		d_quadrAngleType(f[opt], s[opt], x, y, (opt % c_x_length + 1), 
+		d_quadrAngleType(firstT[opt], secondT[opt], x, y, (opt % c_x_length + 1), 
 			(opt / c_x_length + 1) + (int) (offset / c_x_length));
 	}
 }
@@ -432,9 +413,9 @@ void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize
 
 			memcpy(x, p.x, d_xy_size);
 			memcpy(y, p.y, d_xy_size);
-			
+
 			get_angle_type_kernel<<<gridSize, blockSize>>>(first, second, x, y,
-				 p.get_inner_chuck_size() * i);
+				p.get_inner_chuck_size() * i);
 			cudaDeviceSynchronize();
 
 			memcpy(&result->f[copy_offset], first, tr_size);
