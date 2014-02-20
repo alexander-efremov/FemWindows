@@ -143,6 +143,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile>
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <PtxAsOptionV>true</PtxAsOptionV>
     </CudaCompile>
     <CudaLink>
       <AdditionalLibraryDirectories>cuda.lib;cudart.lib</AdditionalLibraryDirectories>
