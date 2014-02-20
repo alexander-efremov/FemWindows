@@ -16,6 +16,7 @@ __constant__ double c_ub;
 __constant__ double c_bb;
 __constant__ double c_b;
 __constant__ int c_x_length;
+__constant__ int c_length;
 
 __device__ void d_quadrAngleType(Triangle& firstT,
 								 Triangle& secondT, double* x, double* y, int i, int j) 
@@ -386,11 +387,10 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 __global__ void get_angle_type_kernel(Triangle* f, Triangle* s, 
 									  double *x, 
-									  double *y, 
-									  int length, 
+									  double *y,
 									  int offset) 
 {
-	for (int opt = hemiGetElementOffset(); opt < length; opt += hemiGetElementStride()) 
+	for (int opt = hemiGetElementOffset(); opt < c_length; opt += hemiGetElementStride()) 
 	{
 		d_quadrAngleType(f[opt], s[opt], x, y, (opt % c_x_length + 1), 
 			(opt / c_x_length + 1) + (int) (offset / c_x_length));
@@ -399,11 +399,14 @@ __global__ void get_angle_type_kernel(Triangle* f, Triangle* s,
 
 void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize, int blockSize) 
 {
-	int d_xy_size(0), offset(0), length(0), copy_offset(0), tr_size(0);
+	int d_xy_size(0), length(0), copy_offset(0), tr_size(0);
 	Triangle *first = NULL, *second = NULL;
 	double *x = NULL, *y = NULL;
 	double tau_to_current_time_level = 0.;
 	d_xy_size = sizeof(double) * p.get_chunk_size();
+	tr_size = sizeof(Triangle) * p.get_inner_chuck_size();
+	length = p.get_inner_chuck_size();
+
 	cudaMallocManaged(&x, d_xy_size);
 	cudaMallocManaged(&y, d_xy_size);
 	cudaMemcpyToSymbol(c_tau, &p.tau, sizeof(double));
@@ -413,18 +416,16 @@ void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize
 	cudaMemcpyToSymbol(c_ub, &p.ub, sizeof(double));
 	cudaMemcpyToSymbol(c_b, &p.b, sizeof(double));
 	cudaMemcpyToSymbol(c_x_length, &result->x_length, sizeof(int));
-	
+	cudaMemcpyToSymbol(c_length, &length, sizeof(int));
 
 	for (p.reset_time_counter(); p.can_iterate_over_time_level(); p.inc_time_level())
 	{
 		tau_to_current_time_level = p.currentTimeLevel * p.tau;
 		cudaMemcpyToSymbol(c_tau_to_current_time_level, &tau_to_current_time_level, sizeof(double));
+
 		for (int i = 0; i < p.get_part_count(); ++i) 
 		{
-			offset = i * p.get_chunk_size();
-			length = std::min(p.get_inner_chuck_size(), p.size  - offset);
 			copy_offset = i * p.get_inner_chuck_size();
-			tr_size = sizeof(Triangle) * length;
 
 			cudaMallocManaged(&first, tr_size);
 			cudaMallocManaged(&second, tr_size);
@@ -432,8 +433,7 @@ void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize
 			memcpy(x, p.x, d_xy_size);
 			memcpy(y, p.y, d_xy_size);
 			
-			get_angle_type_kernel<<<gridSize, blockSize>>>(first, second, x, y, 
-				length, 
+			get_angle_type_kernel<<<gridSize, blockSize>>>(first, second, x, y,
 				 p.get_inner_chuck_size() * i);
 			cudaDeviceSynchronize();
 
