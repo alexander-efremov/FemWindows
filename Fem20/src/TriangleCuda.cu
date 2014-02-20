@@ -1,9 +1,7 @@
-﻿#include <algorithm>    // std::max
-#include "cuda.h"
+﻿#include "cuda.h"
 #include "cuda_runtime.h"
 #include "../Headers/Common.h"
 #include "../Headers/hemi.h"
-#include "../Headers/array.h"
 #include "math.h"
 
 #define DEBUG
