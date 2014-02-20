@@ -388,6 +388,9 @@ void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize
 
 	cudaMallocManaged(&x, d_xy_size);
 	cudaMallocManaged(&y, d_xy_size);
+	cudaMallocManaged(&first, tr_size);
+	cudaMallocManaged(&second, tr_size);
+
 	cudaMemcpyToSymbol(c_tau, &p.tau, sizeof(double));
 	cudaMemcpyToSymbol(c_lb, &p.lb, sizeof(double));
 	cudaMemcpyToSymbol(c_rb, &p.rb, sizeof(double));
@@ -397,34 +400,28 @@ void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize
 	cudaMemcpyToSymbol(c_x_length, &result->x_length, sizeof(int));
 	cudaMemcpyToSymbol(c_length, &length, sizeof(int));
 
-	for (p.reset_time_counter(); p.can_iterate_over_time_level(); p.inc_time_level())
+	tau_to_current_time_level = p.currentTimeLevel * p.tau;
+	cudaMemcpyToSymbol(c_tau_to_current_time_level, &tau_to_current_time_level, sizeof(double));
+
+	for (int i = 0; i < p.get_part_count(); ++i) 
 	{
-		tau_to_current_time_level = p.currentTimeLevel * p.tau;
-		cudaMemcpyToSymbol(c_tau_to_current_time_level, &tau_to_current_time_level, sizeof(double));
+		copy_offset = i * p.get_inner_chuck_size();
 
-		for (int i = 0; i < p.get_part_count(); ++i) 
-		{
-			copy_offset = i * p.get_inner_chuck_size();
+		memcpy(x, p.x, d_xy_size);
+		memcpy(y, p.y, d_xy_size);
 
-			cudaMallocManaged(&first, tr_size);
-			cudaMallocManaged(&second, tr_size);
+		get_angle_type_kernel<<<gridSize, blockSize>>>(first, second, x, y,
+			p.get_inner_chuck_size() * i);
+		cudaDeviceSynchronize();
 
-			memcpy(x, p.x, d_xy_size);
-			memcpy(y, p.y, d_xy_size);
-
-			get_angle_type_kernel<<<gridSize, blockSize>>>(first, second, x, y,
-				p.get_inner_chuck_size() * i);
-			cudaDeviceSynchronize();
-
-			memcpy(&result->f[copy_offset], first, tr_size);
-			memcpy(&result->s[copy_offset], second, tr_size);
-
-			cudaFree(first);
-			cudaFree(second);
-		}
+		memcpy(&result->f[copy_offset], first, tr_size);
+		memcpy(&result->s[copy_offset], second, tr_size);
 	}
+
 	cudaFree(x);
 	cudaFree(y);
+	cudaFree(first);
+	cudaFree(second);
 	cudaDeviceReset();
 }
 

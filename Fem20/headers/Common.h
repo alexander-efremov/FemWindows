@@ -83,12 +83,12 @@ public:
 
 	void reset_time_counter()
 	{
-		time_i = 0;
+		time_i = 1;
 	}
 
 	bool can_iterate_over_time_level()
 	{
-		return time_i < t_count;
+		return time_i <= t_count;
 	}
 
 	void inc_time_level()
@@ -137,6 +137,11 @@ public:
 			return size;
 		}
 		else if (size == 5121)
+		{
+			return size;
+			//return size*569; // 5121 / 9 = 569 - столько ядер запустится для расчета триангуляции
+		}
+		else if (size == 10242)
 		{
 			return size;
 			//return size*569; // 5121 / 9 = 569 - столько ядер запустится для расчета триангуляции
