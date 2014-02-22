@@ -148,6 +148,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
     <CudaLink>
       <AdditionalLibraryDirectories>cuda.lib;cudart.lib</AdditionalLibraryDirectories>
+      <Optimization>InheritFromProject</Optimization>
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

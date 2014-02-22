@@ -289,10 +289,10 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType)
 {
 
 // ошибка на сетке 1280 на 1280, в одной точке
-	const int finishLevel = 8;
+	const int finishLevel = 6;
 	const int startLevel = 0;
-	const int gridSize = 1;
-	const int blockSize = 1;
+	const int gridSize = 512;
+	const int blockSize = 1024;
 	const int needPrint = 0;
 	const double error = 10e-16;
 
@@ -376,8 +376,8 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 	double time_cpu = -1;
 	double time_gpu = -1;
 	// int start_level = 10; // для этого не хватает памяти ( 8 Гб ) для треугольников
-	int start_level = 8; // для этого не хватает памяти ( 8 Гб ) для треугольников
-	int finish_level = 9;
+	int start_level = 7; // для этого не хватает памяти ( 8 Гб ) для треугольников
+	int finish_level = 8;
 	int tc = 0;
 
 	Triangle f = Triangle();
@@ -387,7 +387,8 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 	{
 		ComputeParameters p = GetComputeParameters(level);
 		p.currentTimeLevel = 1;
-		tc = p.t_count;
+		tc = 2;
+		//tc = p.t_count;
 		int y_size;
 		int x_size;
 		y_size = p.y_size;
@@ -398,15 +399,14 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 
 		printf("Start GPU\n");
 		TriangleResult* gpu = new TriangleResult(p);
-		StartTimer();
+		//StartTimer();
+		time_gpu =0;
 		for (int i = 1; i < tc; i++)
 		{
 			p.currentTimeLevel = i;
-
-
-			get_triangle_type(gpu, p, gridSize, blockSize);
+			time_gpu += get_triangle_type(gpu, p, gridSize, blockSize);
 		}
-		time_gpu = GetTimer();
+		//time_gpu = GetTimer();
 		printf("End GPU\n");
 
 
@@ -429,6 +429,8 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 			}
 		}
 		time_cpu = GetTimer();
+
+
 
 		printf("End CPU\n");
 		printf("CPU time is = %f\n", time_cpu);
