@@ -193,6 +193,27 @@ public:
 	}
 };
 
+struct SoATriangle
+{
+	double* first;
+	double* second;
+	double* third;
+	
+	SoATriangle(int n)
+	{
+		first = new double[2*n];
+		second = new double[2*n];
+		third = new double[2*n];
+	}
+	
+	~SoATriangle()
+	{
+		delete[] first;
+		delete[] second;
+		delete[] third;
+	}
+};
+
 struct Triangle
 {
 	double first[2];

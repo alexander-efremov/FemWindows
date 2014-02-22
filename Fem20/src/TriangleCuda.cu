@@ -385,6 +385,7 @@ void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize
 	d_xy_size = sizeof(double) * p.get_chunk_size();
 	tr_size = sizeof(Triangle) * p.get_inner_chuck_size();
 	length = p.get_inner_chuck_size();
+	tau_to_current_time_level = p.currentTimeLevel * p.tau;
 
 	cudaMallocManaged(&x, d_xy_size);
 	cudaMallocManaged(&y, d_xy_size);
@@ -399,8 +400,6 @@ void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize
 	cudaMemcpyToSymbol(c_b, &p.b, sizeof(double));
 	cudaMemcpyToSymbol(c_x_length, &result->x_length, sizeof(int));
 	cudaMemcpyToSymbol(c_length, &length, sizeof(int));
-
-	tau_to_current_time_level = p.currentTimeLevel * p.tau;
 	cudaMemcpyToSymbol(c_tau_to_current_time_level, &tau_to_current_time_level, sizeof(double));
 
 	for (int i = 0; i < p.get_part_count(); ++i) 

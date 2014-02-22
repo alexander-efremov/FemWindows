@@ -358,8 +358,9 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 	double time_cpu = -1;
 	double time_gpu = -1;
 	// int start_level = 10; // для этого не хватает памяти ( 8 Гб ) для треугольников
-	int start_level = 9; // для этого не хватает памяти ( 8 Гб ) для треугольников
-	int finish_level = 10;
+	int start_level = 8; // для этого не хватает памяти ( 8 Гб ) для треугольников
+	int finish_level = 9;
+	int tc = 0;
 
 	Triangle f = Triangle();
 	Triangle s = Triangle();
@@ -368,24 +369,38 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 	{
 		ComputeParameters p = GetComputeParameters(level);
 		p.currentTimeLevel = 1;
+		tc = p.t_count;
 		int y_size;
 		int x_size;
 		y_size = p.y_size;
 		x_size = p.x_size;
 
+
+
 		cout << p << std::endl;
 
 		printf("Start GPU\n");
-
-		StartTimer();
 		TriangleResult* gpu = new TriangleResult(p);
+		StartTimer();
+		for (int i = 1; i < tc; i++)
+		{
+			p.currentTimeLevel = i;
+		
+		
 		get_triangle_type(gpu, p, gridSize, blockSize);
-
+		}
 		time_gpu = GetTimer();
 		printf("End GPU\n");
+
+
 		printf("Start CPU\n");
+		
 		StartTimer();
 
+		for (int i = 1; i < tc; i++)
+		{
+			p.currentTimeLevel = i;
+		
 		for (int j = 1; j < y_size; j++)
 		{
 			for (int i = 1; i < x_size; i++)
@@ -395,14 +410,14 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 				int result = h_quadrAngleType(p, f, s);
 			}
 		}
-
-
+		}
 		time_cpu = GetTimer();
 
 		printf("End CPU\n");
 		printf("CPU time is = %f\n", time_cpu);
 		printf("GPU time is = %f\n", time_gpu);
 		printf("CPU/GPU = %f\n", time_cpu/time_gpu);
+		delete gpu;
 	}
 	std::cin.get();
 }
