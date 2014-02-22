@@ -30,7 +30,7 @@ public:
 
 	SoATriangle(int n)
 	{
-		size = sizeof(double)*2*n;
+		size = 2*sizeof(double)*n;
 		checkCuda(cudaMallocManaged(&first1, size));
 		checkCuda(cudaMallocManaged(&second1, size));
 		checkCuda(cudaMallocManaged(&third1,size));
