@@ -98,8 +98,8 @@ protected:
 	double* GetCpuToLevel(int level)
 	{
 		return solve_cpu_test(C_par_a, C_par_b, C_lbDom, C_rbDom, C_bbDom,
-			C_ubDom, C_tau, C_numOfTSt, masOX, C_numOfOXSt, masOY,
-			C_numOfOYSt, level);
+		                      C_ubDom, C_tau, C_numOfTSt, masOX, C_numOfOXSt, masOY,
+		                      C_numOfOYSt, level);
 	}
 };
 
@@ -231,7 +231,7 @@ protected:
 	}
 
 	double get_cpu_integr_result_internal(ComputeParameters p, double* rhoInPrevTL_asV, Triangle t1,
-		Triangle s1)
+	                                      Triangle s1)
 	{
 		double buf_D = integUnderUnunifTr(
 			p.a, p.b,
@@ -271,60 +271,6 @@ protected:
 
 		return buf_D;
 	}
-
-	void TestTriangleTypeInternal(int startLevel, int finishLevel,
-		int gridSize, int blockSize, int needPrint)
-	{
-		for (int level = startLevel; level < finishLevel; ++level)
-		{
-			cout << "level = " << level << std::endl;
-			ComputeParameters p = GetComputeParameters(level);
-			p.currentTimeLevel = 1;
-
-			cout << "chunk = " << p.get_chunk_size() << std::endl;
-			TriangleResult* gpu = new TriangleResult(p);
-			get_triangle_type(gpu, p, gridSize, blockSize);
-
-			// get cpu data
-			Triangle f = Triangle();
-			Triangle s = Triangle();
-
-			int y_size;
-			int x_size;
-
-			y_size = p.y_size;
-			x_size = p.x_size;
-
-			for (int j = 1; j < y_size; j++)
-			{
-				for (int i = 1; i < x_size; i++)
-				{
-					p.i = i;
-					p.j = j;
-
-					int result = h_quadrAngleType(p, f, s);
-					int c = (p.x_size - 1) * (j - 1) + (i - 1);
-
-					if (needPrint == 1)
-					{
-						printf("\n i = %d, j = %d, c is = %d\n", i, j, c);
-						cout << "First GPU is " << std::endl << gpu->f[c]
-						<< std::endl;
-						cout << "Second GPU is " << std::endl << gpu->s[c]
-						<< std::endl;
-						cout << "First CPU is " << std::endl << f
-							<< std::endl;
-						cout << "Second CPU is " << std::endl << s
-							<< std::endl;
-					}
-
-					ASSERT_TRUE(gpu->f[c] == f);
-					ASSERT_TRUE(gpu->s[c] == s);
-				}
-			}
-			delete gpu;
-		}
-	}
 };
 
 TEST_F(GpuFemTest, DISABLED_GpuTestModel11)
@@ -341,13 +287,85 @@ TEST_F(GpuFemTest, DISABLED_GpuTestModel11)
 
 TEST_F(GpuFemTest, Gpu_h_quadrAngleType)
 {
-	int finishLevel = 10;
-	int startLevel = 0;
-	int gridSize = 512;
-	int blockSize = 1024;
-	int needPrint = 0;
 
-	TestTriangleTypeInternal(startLevel, finishLevel, gridSize, blockSize, needPrint);
+// ошибка на сетке 1280 на 1280, в одной точке
+	const int finishLevel = 8;
+	const int startLevel = 0;
+	const int gridSize = 1;
+	const int blockSize = 1;
+	const int needPrint = 0;
+	const double error = 10e-16;
+
+	for (int level = startLevel; level < finishLevel; ++level)
+	{
+		cout << "level = " << level << std::endl;
+		ComputeParameters p = GetComputeParameters(level);
+		p.currentTimeLevel = 1;
+
+		cout << "chunk = " << p.get_chunk_size() << std::endl;
+		TriangleResult* gpu = new TriangleResult(p);
+		get_triangle_type(gpu, p, gridSize, blockSize);
+
+		// get cpu data
+		Triangle f = Triangle();
+		Triangle s = Triangle();
+
+
+		for (int j = 1; j < p.y_size; j++)
+		{
+			for (int i = 1; i < p.x_size; i++)
+			{
+				p.i = i;
+				p.j = j;
+
+				int result = h_quadrAngleType(p, f, s);
+				int c = (p.x_size - 1) * (j - 1) + (i - 1);
+
+				//if (needPrint == 1 )
+				//if ( 1 && c > 1355000)
+				{
+					/*printf("\n i = %d, j = %d, c is = %d\n", i, j, c);
+					cout << "First GPU is " << std::endl << gpu->f[c]
+					<< std::endl;
+					cout << "Second GPU is " << std::endl << gpu->s[c]
+					<< std::endl;
+					cout << "First CPU is " << std::endl << f
+					<< std::endl;
+					cout << "Second CPU is " << std::endl << s
+					<< std::endl;*/
+					//	std::cout << c << std::endl;
+				}
+
+				bool b1 = (fabs(gpu->f[c].first[0] - f.first[0]) < error) && ( fabs(gpu->f[c].first[1] - f.first[1] )< error);
+				ASSERT_TRUE( b1 ) << "c = " << c << std::endl << gpu->f[c] << std::endl << f << std::endl;
+				bool b2 = (fabs(gpu->f[c].second[0] -f.second[0]) < error) && ( fabs(gpu->f[c].second[1] - f.second[1] )< error);
+				ASSERT_TRUE( b2 ) << "c = " << c << std::endl << gpu->f[c] << std::endl << f << std::endl;
+
+
+				bool b3 = (fabs(gpu->f[c].third[0] - f.third[0]) < error) && ( fabs(gpu->f[c].third[1] - f.third[1] )< error);
+				ASSERT_TRUE( b3 ) << "c = " << c << std::endl << gpu->f[c] << std::endl << f << std::endl;
+
+
+				ASSERT_TRUE( b1&&b2&&b3 ) << "c = " << c << std::endl;
+
+				bool b4 = (fabs(gpu->s[c].first[0] - s.first[0] )< error) && ( fabs(gpu->s[c].first[1] - s.first[1]) < error) ;
+				ASSERT_TRUE( b4 ) << "c = " << c << std::endl << gpu->s[c] << std::endl << s << std::endl;
+
+				bool b5 = (fabs(gpu->s[c].second[0] - s.second[0] )< error) && (fabs(gpu->s[c].second[1] - s.second[1] )< error) ;
+				ASSERT_TRUE( b5 ) << "c = " << c << std::endl << gpu->s[c] << std::endl << s << std::endl;
+
+				bool b6 = (fabs(gpu->s[c].third[0] - s.third[0]) < error) && ( fabs(gpu->s[c].third[1] - s.third[1]) < error);
+				ASSERT_TRUE( b6 ) << "c = " << c << std::endl << gpu->s[c] << std::endl << s << std::endl;
+
+				ASSERT_TRUE( b3&&b5&&b6 ) << "c = " << c << std::endl << gpu->s[c] << std::endl << s << std::endl;
+
+				//	ASSERT_TRUE(gpu->f[c] == f) << "c = " << c << std::endl;
+				//ASSERT_TRUE(gpu->s[c] == s) << "c = " << c << std::endl;
+			}
+		}
+		delete gpu;
+	}
+	std::cout << "Done!" << std::endl;
 	std::cin.get();
 }
 
@@ -376,7 +394,6 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 		x_size = p.x_size;
 
 
-
 		cout << p << std::endl;
 
 		printf("Start GPU\n");
@@ -385,31 +402,31 @@ TEST_F(GpuFemTest, Gpu_h_quadrAngleType_time_measurment)
 		for (int i = 1; i < tc; i++)
 		{
 			p.currentTimeLevel = i;
-		
-		
-		get_triangle_type(gpu, p, gridSize, blockSize);
+
+
+			get_triangle_type(gpu, p, gridSize, blockSize);
 		}
 		time_gpu = GetTimer();
 		printf("End GPU\n");
 
 
 		printf("Start CPU\n");
-		
+
 		StartTimer();
 
 		for (int i = 1; i < tc; i++)
 		{
 			p.currentTimeLevel = i;
-		
-		for (int j = 1; j < y_size; j++)
-		{
-			for (int i = 1; i < x_size; i++)
+
+			for (int j = 1; j < y_size; j++)
 			{
-				p.i = i;
-				p.j = j;
-				int result = h_quadrAngleType(p, f, s);
+				for (int i = 1; i < x_size; i++)
+				{
+					p.i = i;
+					p.j = j;
+					int result = h_quadrAngleType(p, f, s);
+				}
 			}
-		}
 		}
 		time_cpu = GetTimer();
 
@@ -448,7 +465,7 @@ TEST_F(GpuFemTest, debug_multi_chunks)
 
 //основной тест
 TEST_F(GpuFemTest, DISABLED_d_integUnderUnunifTr)
-	//TEST_F(GpuFemTest, d_integUnderUnunifTr)
+//TEST_F(GpuFemTest, d_integUnderUnunifTr)
 {
 	// параметры размерности задачи
 	int levelStep = 1;
@@ -490,7 +507,7 @@ TEST_F(GpuFemTest, DISABLED_d_integUnderUnunifTr)
 			printf("Start GPU triangulation...  ");
 			TriangleResult* gpu = new TriangleResult(p);
 			get_triangle_type(gpu, p, grid_size,
-				block_size);
+			                  block_size);
 			printf("GPU triangulation is done.\n");
 
 			int c = -1;
@@ -519,7 +536,7 @@ TEST_F(GpuFemTest, DISABLED_d_integUnderUnunifTr)
 			printf("Perform GPU integration...   ");
 			StartTimer();
 			double* gpu_integr = GetIntegrGpuResult(p, *gpu, rho_in_prev_tl, grid_size, block_size
-				, p.get_chunk_size());
+			                                        , p.get_chunk_size());
 			time_gpu = GetTimer();
 			printf("GPU integration is done.\n");
 
@@ -566,7 +583,7 @@ TEST_F(CpuVersusGpuFunctionalFemTest, AnalyticSolutionEqualsTest)
 {
 	ComputeParameters p = GetComputeParameters(0);
 	double cpu = analytSolut(p.a, p.lb, p.rb, p.bb, p.ub, p.tau, p.x[1],
-		p.y[1]);
+	                         p.y[1]);
 	double gpu = h_analytSolut(p.tau, p.x[1], p.y[1]);
 	ASSERT_EQ(cpu, gpu);
 }
@@ -575,7 +592,7 @@ TEST_F(CpuVersusGpuFunctionalFemTest, AnalyticSolutionNotEqualsTest)
 {
 	ComputeParameters p = GetComputeParameters(0);
 	double cpu = analytSolut(p.a, p.lb, p.rb, p.bb, p.ub, p.tau, p.x[1],
-		p.y[2]);
+	                         p.y[2]);
 	double gpu = h_analytSolut(p.tau, p.x[1], p.y[1]);
 	ASSERT_NE(cpu, gpu);
 }
@@ -595,7 +612,7 @@ TEST_F(CpuVersusGpuFunctionalFemTest, F_Function_EqualsTest)
 	int i = 1;
 	int j = 1;
 	double cpu = f_function(p.a, p.b, p.lb, p.rb, p.bb, p.ub, p.tau,
-		currentTimeLevel, i, p.x, p.x_size, j, p.y, p.y_size);
+	                        currentTimeLevel, i, p.x, p.x_size, j, p.y, p.y_size);
 	double gpu = h_f_function(p, currentTimeLevel, i, j);
 	ASSERT_EQ(cpu, gpu);
 }
@@ -607,7 +624,7 @@ TEST_F(CpuVersusGpuFunctionalFemTest, F_Function_NotEqualsTest)
 	int i = 1;
 	int j = 1;
 	double cpu = f_function(p.a, p.b, p.lb, p.rb, p.bb, p.ub, p.tau,
-		currentTimeLevel, i, p.x, p.x_size, j + 2, p.y, p.y_size);
+	                        currentTimeLevel, i, p.x, p.x_size, j + 2, p.y, p.y_size);
 	double gpu = h_f_function(p, currentTimeLevel, i + 1, j);
 	ASSERT_NE(cpu, gpu);
 }

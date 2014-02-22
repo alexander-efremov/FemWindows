@@ -4,7 +4,52 @@
 #include "../Headers/hemi.h"
 #include "math.h"
 
+// assert() is only supported // for devices of compute capability 2.0 and higher 
+#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 200) 
+#undef  assert 
+#define assert(arg) 
+#endif
+
 #define DEBUG
+
+struct SoATriangle
+{
+private:
+	int size;
+
+public:
+	// first triangle
+	double* first1;
+	double* second1;
+	double* third1;
+
+	// second triangle
+	double* first2;
+	double* second2;
+	double* third2;
+
+	SoATriangle(int n)
+	{
+		size = sizeof(double)*2*n;
+		checkCuda(cudaMallocManaged(&first1, size));
+		checkCuda(cudaMallocManaged(&second1, size));
+		checkCuda(cudaMallocManaged(&third1,size));
+
+		checkCuda(cudaMallocManaged(&first2, size));
+		checkCuda(cudaMallocManaged(&second2, size));
+		checkCuda(cudaMallocManaged(&third2, size));
+	}
+
+	~SoATriangle()
+	{
+		cudaFree(first1  );
+		cudaFree(second1 );
+		cudaFree(third1  );
+		cudaFree(first2  );
+		cudaFree(second2 );
+		cudaFree(third2  );
+	}
+};
 
 __constant__ double c_tau;
 __constant__ double c_tau_to_current_time_level;
@@ -16,9 +61,14 @@ __constant__ double c_b;
 __constant__ int c_x_length;
 __constant__ int c_length;
 
-__device__ void d_quadrAngleType(Triangle& firstT,
-								 Triangle& secondT, double* x, double* y, int i, int j) 
+__device__ void d_quadrAngleType(int opt, 
+								 double* first1, double* second1, double* third1, 
+								 double* first2, double* second2, double* third2, 
+								 double* x, double* y, 
+								 int i, int j) 
 {
+	//opt = opt + opt; //because of opt, opt + 1 step
+
 	double alpha[2], betta[2], gamma[2], theta[2]; //   -  Vertexes of square. Anticlockwise order from left bottom vertex.
 	double u, v;                           //   -  Items of velocity components.
 	double alNew[2], beNew[2], gaNew[2], thNew[2]; //   -  New positions of vertexes. Vertexes of quadrangle.
@@ -45,8 +95,8 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 	//   2. Now let's compute new coordinates on the previous time level of alpha, betta, gamma, theta points.
 	//  alNew.
 
-	u = c_b * alpha[1] * (1. - alpha[1]) * (C_pi_device / 2. + atan(alpha[0]));
-
+	u = c_b * alpha[1] * (1. - alpha[1]) * (C_pi_device / 2. + atan(-alpha[0]));
+	
 	v = atan(
 		(alpha[0] - c_lb) * (alpha[0] - c_rb) * (1. + c_tau_to_current_time_level) / 10. * (alpha[1] - c_ub)
 		* (alpha[1] - c_bb));
@@ -55,17 +105,18 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 	//  beNew.
 
-	u = c_b * betta[1] * (1. - betta[1]) * (C_pi_device / 2. + atan(betta[0]));
+	u = c_b * betta[1] * (1. - betta[1]) * (C_pi_device / 2. + atan(-betta[0]));
+//	return	atan((x - lbDom) * (x - rbDom) * (1.+t) /10. * (y - ubDom) * (y - bbDom));
 	v = atan(
 		(betta[0] - c_lb) * (betta[0] - c_rb) * (1. + c_tau_to_current_time_level) / 10. * (betta[1] - c_ub)
 		* (betta[1] - c_bb));
 	beNew[0] = betta[0] - c_tau * u;
 	beNew[1] = betta[1] - c_tau * v;
-
+	
 	//  gaNew.
 
 
-	u = c_b * gamma[1] * (1. - gamma[1]) * (C_pi_device / 2. + atan(gamma[0]));
+	u = c_b * gamma[1] * (1. - gamma[1]) * (C_pi_device / 2. + atan(-gamma[0]));
 	v = atan(
 		(gamma[0] - c_lb) * (gamma[0] - c_rb) * (1. + c_tau_to_current_time_level) / 10. * (gamma[1] - c_ub)
 		* (gamma[1] - c_bb));
@@ -74,7 +125,7 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 	//  thNew.
 
-	u = c_b * theta[1] * (1. - theta[1]) * (C_pi_device / 2. + atan(theta[0]));
+	u = c_b * theta[1] * (1. - theta[1]) * (C_pi_device / 2. + atan(-theta[0]));
 	v =  atan(
 		(theta[0] - c_lb) * (theta[0] - c_rb) * (1. + c_tau_to_current_time_level) / 10. * (theta[1] - c_ub)
 		* (theta[1] - c_bb));
@@ -105,17 +156,15 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 	if (fabs(b_1LC * a_2LC - b_2LC * a_1LC) < 1.e-14) 
 	{
 		//   Not checked.
-
 		//   Pseudo case. Anyway I need to compute some values.
-
 		//   First triangle.
 
-		firstT.first[0] = alNew[0];
-		firstT.first[1] = alNew[1];
-		firstT.second[0] = beNew[0];
-		firstT.second[1] = beNew[1];
-		firstT.third[0] = gaNew[0];
-		firstT.third[1] = gaNew[1];
+		first1[opt] = alNew[0];
+		first1[opt + 1] = alNew[1];
+		second1[opt] = beNew[0];
+		second1[opt + 1] = beNew[1];
+		third1[opt] = gaNew[0];
+		third1[opt + 1] = gaNew[1];
 
 		//   Vertices of second triagle depends on scalar production.
 
@@ -124,20 +173,20 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 		vectBeTh[0] = thNew[0] - beNew[0];
 		vectBeTh[1] = thNew[1] - beNew[1];
 
-		secondT.first[0] = beNew[0];
-		secondT.first[1] = beNew[1];
-		secondT.second[0] = thNew[0];
-		secondT.second[1] = thNew[1];
+		first2[opt] = beNew[0];
+		first2[opt + 1] = beNew[1];
+		second2[opt] = thNew[0];
+		second2[opt + 1] = thNew[1];
 
 		if (vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1] >= 0.) 
 		{
-			secondT.third[0] = gaNew[0];
-			secondT.third[1] = gaNew[1];
+			third2[opt] = gaNew[0];
+			third2[opt+1] = gaNew[1];
 		}
 		else if (vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1] < 0.) 
 		{
-			secondT.third[0] = alNew[0];
-			secondT.third[1] = alNew[1];
+			third2[opt] = alNew[0];
+			third2[opt+1] = alNew[1];
 		}
 		return;
 	}
@@ -152,34 +201,33 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 		if (((alNew[0] - AcrP[0]) * (gaNew[0] - AcrP[0])) > 0.)
 		{
 
-			firstT.first[0] = alNew[0];
-			firstT.first[1] = alNew[1];
-			firstT.second[0] = beNew[0];
-			firstT.second[1] = beNew[1];
-			firstT.third[0] = gaNew[0];
-			firstT.third[1] = gaNew[1];
+			first1[opt] = alNew[0];
+			first1[opt+1] = alNew[1];
+			second1[opt] = beNew[0];
+			second1[opt+1] = beNew[1];
+			third1[opt] = gaNew[0];
+			third1[opt+1] = gaNew[1];
 
 			//   Second triangle.
 
-			secondT.first[0] = beNew[0];
-			secondT.first[1] = beNew[1];
-			secondT.second[0] = thNew[0];
-			secondT.second[1] = thNew[1];
+			first2[opt] = beNew[0];
+			first2[opt+1] = beNew[1];
+			second2[opt] = thNew[0];
+			second2[opt+1] = thNew[1];
 
 			//   Third vertex computing...
 
 			vectAlGa[0] = gaNew[0] - alNew[0];
 			vectAlGa[1] = gaNew[1] - alNew[1];
-
 			vectBeTh[0] = thNew[0] - beNew[0];
 			vectBeTh[1] = thNew[1] - beNew[1];
 
 			if (vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1] >= 0.) {
-				secondT.third[0] = gaNew[0];
-				secondT.third[1] = gaNew[1];
+				third2[opt] = gaNew[0];
+				third2[opt+1] = gaNew[1];
 			} else if (vectAlGa[0] * vectBeTh[0] + vectAlGa[1] * vectBeTh[1] < 0.) {
-				secondT.third[0] = alNew[0];
-				secondT.third[1] = alNew[1];
+				third2[opt] = alNew[0];
+				third2[opt+1] = alNew[1];
 			}
 
 			return;
@@ -200,21 +248,21 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 				//   The vertex "beNew" is NOT in triangle "alNew - gaNew - thNew".
 				//   Pseudo case. Anyway I need to find some solution. So
 
-				firstT.first[0] = alNew[0];
-				firstT.first[1] = alNew[1];
-				firstT.second[0] = beNew[0];
-				firstT.second[1] = beNew[1];
-				firstT.third[0] = thNew[0];
-				firstT.third[1] = thNew[1];
+				first1[opt] = alNew[0];
+				first1[opt+1] = alNew[1];
+				second1[opt] = beNew[0];
+				second1[opt+1] = beNew[1];
+				third1[opt] = thNew[0];
+				third1[opt+1] = thNew[1];
 
 				//   Second triangle.
 
-				secondT.first[0] = beNew[0];
-				secondT.first[1] = beNew[1];
-				secondT.second[0] = thNew[0];
-				secondT.second[1] = thNew[1];
-				secondT.third[0] = gaNew[0];
-				secondT.third[1] = gaNew[1];
+				first2[opt] = beNew[0];
+				first2[opt+1] = beNew[1];
+				second2[opt] = thNew[0];
+				second2[opt+1] = thNew[1];
+				third2[opt] = gaNew[0];
+				third2[opt+1] = gaNew[1];
 
 				return;
 			}
@@ -223,21 +271,21 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 				//  It's all write. We have a good concave quadrangle.
 				//   Now let's compute all vertices which I need.
 				//   First triangle.
-				firstT.first[0] = alNew[0];
-				firstT.first[1] = alNew[1];
-				firstT.second[0] = beNew[0];
-				firstT.second[1] = beNew[1];
-				firstT.third[0] = thNew[0];
-				firstT.third[1] = thNew[1];
+				first1[opt] = alNew[0];
+				first1[opt+1] = alNew[1];
+				second1[opt] = beNew[0];
+				second1[opt+1] = beNew[1];
+				third1[opt] = thNew[0];
+				third1[opt+1] = thNew[1];
 
 				//   Second triangle.
 
-				secondT.first[0] = beNew[0];
-				secondT.first[1] = beNew[1];
-				secondT.second[0] = thNew[0];
-				secondT.second[1] = thNew[1];
-				secondT.third[0] = gaNew[0];
-				secondT.third[1] = gaNew[1];
+				first2[opt] = beNew[0];
+				first2[opt+1] = beNew[1];
+				second2[opt] = thNew[0];
+				second2[opt+1] = thNew[1];
+				third2[opt] = gaNew[0];
+				third2[opt+1] = gaNew[1];
 
 				return;
 			}
@@ -266,21 +314,21 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 				//   The quadrangle is concave. First triangle.
 
-				firstT.first[0] = alNew[0];
-				firstT.first[1] = alNew[1];
-				firstT.second[0] = beNew[0];
-				firstT.second[1] = beNew[1];
-				firstT.third[0] = gaNew[0];
-				firstT.third[1] = gaNew[1];
+				first1[opt] = alNew[0];
+				first1[opt+1] = alNew[1];
+				second1[opt] = beNew[0];
+				second1[opt+1] = beNew[1];
+				third1[opt] = gaNew[0];
+				third1[opt+1] = gaNew[1];
 
 				//   Second triangle.
 
-				secondT.first[0] = alNew[0];
-				secondT.first[1] = alNew[1];
-				secondT.second[0] = thNew[0];
-				secondT.second[1] = thNew[1];
-				secondT.third[0] = gaNew[0];
-				secondT.third[1] = gaNew[1];
+				first2[opt] = alNew[0];
+				first2[opt+1] = alNew[1];
+				second2[opt] = thNew[0];
+				second2[opt+1] = thNew[1];
+				third2[opt] = gaNew[0];
+				third2[opt+1] = gaNew[1];
 
 				return;
 			}
@@ -289,21 +337,21 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 				//   This concave quadrangle do has NO write anticlockwise vertices sequence order. It's pseudo.
 
-				firstT.first[0] = alNew[0];
-				firstT.first[1] = alNew[1];
-				firstT.second[0] = beNew[0];
-				firstT.second[1] = beNew[1];
-				firstT.third[0] = gaNew[0];
-				firstT.third[1] = gaNew[1];
+				first1[opt] = alNew[0];
+				first1[opt+1] = alNew[1];
+				second1[opt] = beNew[0];
+				second1[opt+1] = beNew[1];
+				third1[opt] = gaNew[0];
+				third1[opt+1] = gaNew[1];
 
 				//   Second triangle.
 
-				secondT.first[0] = alNew[0];
-				secondT.first[1] = alNew[1];
-				secondT.second[0] = thNew[0];
-				secondT.second[1] = thNew[1];
-				secondT.third[0] = gaNew[0];
-				secondT.third[1] = gaNew[1];
+				first2[opt] = alNew[0];
+				first2[opt+1] = alNew[1];
+				second2[opt] = thNew[0];
+				second2[opt+1] = thNew[1];
+				third2[opt] = gaNew[0];
+				third2[opt+1] = gaNew[1];
 
 				return;
 			}
@@ -326,59 +374,96 @@ __device__ void d_quadrAngleType(Triangle& firstT,
 
 				//   Convex quadrangle DO HAS WRITE anticlockwise vertices sequence order. It's convex.
 
-				firstT.first[0] = alNew[0];
-				firstT.first[1] = alNew[1];
-				firstT.second[0] = beNew[0];
-				firstT.second[1] = beNew[1];
-				firstT.third[0] = gaNew[0];
-				firstT.third[1] = gaNew[1];
+				first1[opt] = alNew[0];
+				first1[opt+1] = alNew[1];
+				second1[opt] = beNew[0];
+				second1[opt+1] = beNew[1];
+				third1[opt] = gaNew[0];
+				third1[opt+1] = gaNew[1];
 
 				//   Second triangle.
 
-				secondT.first[0] = alNew[0];
-				secondT.first[1] = alNew[1];
-				secondT.second[0] = thNew[0];
-				secondT.second[1] = thNew[1];
-				secondT.third[0] = gaNew[0];
-				secondT.third[1] = gaNew[1]; 
+				first2[opt] = alNew[0];
+				first2[opt+1] = alNew[1];
+				second2[opt] = thNew[0];
+				second2[opt+1] = thNew[1];
+				third2[opt] = gaNew[0];
+				third2[opt+1] = gaNew[1]; 
 
 				return;
 			} 
 			else if (vectAlBe[0] * vectAlTh[1] - vectAlBe[1] * vectAlTh[0] < 0.)
 			{
-				firstT.first[0] = alNew[0];
-				firstT.first[1] = alNew[1];
-				firstT.second[0] = beNew[0];
-				firstT.second[1] = beNew[1];
-				firstT.third[0] = gaNew[0];
-				firstT.third[1] = gaNew[1];
-				secondT.first[0] = alNew[0];
-				secondT.first[1] = alNew[1];
-				secondT.second[0] = thNew[0];
-				secondT.second[1] = thNew[1];
-				secondT.third[0] = gaNew[0];
-				secondT.third[1] = gaNew[1];
+				first1[opt] = alNew[0];
+				first1[opt+1] = alNew[1];
+				second1[opt] = beNew[0];
+				second1[opt+1] = beNew[1];
+				third1[opt] = gaNew[0];
+				third1[opt+1] = gaNew[1];
+				first2[opt] = alNew[0];
+				first2[opt+1] = alNew[1];
+				second2[opt] = thNew[0];
+				second2[opt+1] = thNew[1];
+				third2[opt] = gaNew[0];
+				third2[opt+1] = gaNew[1];
 				return;
 			}
 		}
 	}
 }
 
-__global__ void get_angle_type_kernel(Triangle* firstT, Triangle* secondT, 
+
+
+__global__ void get_angle_type_kernel(double* first1, double* second1, double* third1, 
+									  double* first2, double* second2, double* third2, 
 									  double *x, 
 									  double *y,
 									  int offset) 
 {
 	for (int opt = hemiGetElementOffset(); opt < c_length; opt += hemiGetElementStride()) 
 	{
-		d_quadrAngleType(firstT[opt], secondT[opt], x, y, (opt % c_x_length + 1), 
+		d_quadrAngleType(
+			(opt + offset)*2, 
+			first1, 
+			second1, 
+			third1, 
+			first2, 
+			second2, 
+			third2,
+			x, y, 
+			(opt % c_x_length + 1), 
 			(opt / c_x_length + 1) + (int) (offset / c_x_length));
+
+	}
+}
+
+void convert(TriangleResult* result, SoATriangle* tr, int n)
+{
+	int k = 0;
+	for (int i = 0; i < n; i++)
+	{
+		result->f[i].first[0] = tr->first1[k];
+		result->f[i].first[1] = tr->first1[k+1];
+		result->f[i].second[0] = tr->second1[k];
+		result->f[i].second[1] = tr->second1[k+1];
+		result->f[i].third[0] = tr->third1[k];
+		result->f[i].third[1] = tr->third1[k+1];
+
+		result->s[i].first[0] = tr->first2[k];
+		result->s[i].first[1] = tr->first2[k+1];
+		result->s[i].second[0] = tr->second2[k];
+		result->s[i].second[1] = tr->second2[k+1];
+		result->s[i].third[0] = tr->third2[k];
+		result->s[i].third[1] = tr->third2[k+1];
+
+	
+		k += 2;
 	}
 }
 
 void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize, int blockSize) 
 {
-	int d_xy_size(0), length(0), copy_offset(0), tr_size(0);
+	/*int d_xy_size(0), length(0), copy_offset(0), tr_size(0);
 	Triangle *first = NULL, *second = NULL;
 	double *x = NULL, *y = NULL;
 	double tau_to_current_time_level = 0.;
@@ -404,23 +489,63 @@ void get_triangle_type(TriangleResult* result, ComputeParameters p, int gridSize
 
 	for (int i = 0; i < p.get_part_count(); ++i) 
 	{
-		copy_offset = i * p.get_inner_chuck_size();
+	copy_offset = i * p.get_inner_chuck_size();
 
-		memcpy(x, p.x, d_xy_size);
-		memcpy(y, p.y, d_xy_size);
+	memcpy(x, p.x, d_xy_size);
+	memcpy(y, p.y, d_xy_size);
 
-		get_angle_type_kernel<<<gridSize, blockSize>>>(first, second, x, y,
-			p.get_inner_chuck_size() * i);
-		cudaDeviceSynchronize();
+	get_angle_type_kernel<<<gridSize, blockSize>>>(first, second, x, y,
+	p.get_inner_chuck_size() * i);
+	cudaDeviceSynchronize();
 
-		memcpy(&result->f[copy_offset], first, tr_size);
-		memcpy(&result->s[copy_offset], second, tr_size);
+	memcpy(&result->f[copy_offset], first, tr_size);
+	memcpy(&result->s[copy_offset], second, tr_size);
 	}
 
 	cudaFree(x);
 	cudaFree(y);
 	cudaFree(first);
 	cudaFree(second);
+	cudaDeviceReset();*/
+
+	int d_xy_size(0), length(0);
+	SoATriangle *soa = new SoATriangle(p.get_inner_matrix_size());
+	double *x = NULL, *y = NULL;
+	double tau_to_current_time_level = 0.;
+	d_xy_size = sizeof(double) * p.get_chunk_size();
+	length = p.get_inner_chuck_size();
+	tau_to_current_time_level = p.currentTimeLevel * p.tau;
+
+	cudaMallocManaged(&x, d_xy_size);
+	cudaMallocManaged(&y, d_xy_size);
+
+	cudaMemcpyToSymbol(c_tau, &p.tau, sizeof(double));
+	cudaMemcpyToSymbol(c_lb, &p.lb, sizeof(double));
+	cudaMemcpyToSymbol(c_rb, &p.rb, sizeof(double));
+	cudaMemcpyToSymbol(c_bb, &p.bb, sizeof(double));
+	cudaMemcpyToSymbol(c_ub, &p.ub, sizeof(double));
+	cudaMemcpyToSymbol(c_b, &p.b, sizeof(double));
+	cudaMemcpyToSymbol(c_x_length, &result->x_length, sizeof(int));
+	cudaMemcpyToSymbol(c_length, &length, sizeof(int));
+	cudaMemcpyToSymbol(c_tau_to_current_time_level, &tau_to_current_time_level, sizeof(double));
+
+	for (int i = 0; i < p.get_part_count(); ++i) 
+	{
+		memcpy(x, p.x, d_xy_size);
+		memcpy(y, p.y, d_xy_size);
+
+		get_angle_type_kernel<<<gridSize, blockSize>>>(soa->first1, soa->second1, soa->third1, 
+			soa->first2, soa->second2, soa->third2, x, y,
+			p.get_inner_chuck_size() * i);
+		cudaDeviceSynchronize();
+	}
+
+	convert(result, soa, p.get_inner_matrix_size());
+
+	cudaFree(x);
+	cudaFree(y);
+	delete soa;
 	cudaDeviceReset();
+
 }
 

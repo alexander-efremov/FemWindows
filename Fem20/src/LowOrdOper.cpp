@@ -2196,7 +2196,7 @@ int quadrAngleType(
 	v = v_function( lbDom, rbDom, bbDom, ubDom, iCurrTL * tau, betta[0], betta[1] );
 	beNew[0] = betta[0] - tau * u;
 	beNew[1] = betta[1] - tau * v;
-
+	
 	//  gaNew.
 
 	u = u_function( par_b, iCurrTL * tau, gamma[0], gamma[1] );

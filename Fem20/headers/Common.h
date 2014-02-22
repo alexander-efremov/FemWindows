@@ -1,4 +1,5 @@
 ﻿#include <iostream>
+#include <assert.h>
 #ifndef COMMON_H_INCLUDED
 #define COMMON_H_INCLUDED
 
@@ -40,6 +41,7 @@ struct ComputeParameters
 {
 private:
 	int time_i;
+
 	int get_real_x_size()
 	{
 		return x_size + 1;
@@ -193,26 +195,6 @@ public:
 	}
 };
 
-struct SoATriangle
-{
-	double* first;
-	double* second;
-	double* third;
-	
-	SoATriangle(int n)
-	{
-		first = new double[2*n];
-		second = new double[2*n];
-		third = new double[2*n];
-	}
-	
-	~SoATriangle()
-	{
-		delete[] first;
-		delete[] second;
-		delete[] third;
-	}
-};
 
 struct Triangle
 {
@@ -235,9 +217,13 @@ struct Triangle
 	friend bool operator==(const Triangle& x, const Triangle& y)
 	{
 		double const error = 10e-16;
-		bool p1 = (x.first[0] - y.first[0] < error) && (x.first[1] - y.first[1] < error);
-		bool p2 = (x.second[0] - y.second[0] < error) && (x.second[1] - y.second[1] < error);
-		bool p3 = (x.third[0] - y.third[0] < error) && (x.third[1] - y.third[1] < error);
+		bool p1 = (fabs(x.first[0] - y.first[0] ) < error) && (fabs(x.first[1] - y.first[1] )< error);
+		
+		bool p2 = (fabs(x.second[0] - y.second[0] ) < error) && (fabs(x.second[1] - y.second[1])< error);
+	
+		bool p3 = (fabs(x.third[0] - y.third[0] ) < error) && (fabs(x.third[1] - y.third[1] )< error);
+		
+		
 		return p1 && p2 && p3;
 	}
 };
@@ -245,7 +231,6 @@ struct Triangle
 
 struct TriangleResult
 {
-	
 private:
 	int chunk;
 
@@ -258,6 +243,7 @@ public:
 	int y_length;
 	int currentTimeLevel;
 	int offset;
+
 	TriangleResult(ComputeParameters param)
 	{
 		currentTimeLevel =param.currentTimeLevel;
