@@ -19,9 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\Common.h" />
+    <ClInclude Include="headers\common.h" />
     <ClInclude Include="headers\const.h" />
-    <ClInclude Include="headers\Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="get_quad_coord.cu">

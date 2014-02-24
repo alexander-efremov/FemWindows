@@ -120,7 +120,7 @@ __global__ void prepare_data_kernel(double *a_x, double *a_y, double* alpha, dou
 	}
 }
 
-__global__ void get_triangle_coordinates_kernel(
+__global__ void get_quad_coord(
 	double* first1, double* second1, double* third1, 
 									  double* first2, double* second2, double* third2, 
 									  const double* alNew, const double* beNew, const double* gaNew, const double* thNew) 
@@ -410,7 +410,7 @@ void convert(TriangleResult* result, SoATriangle* tr, int n)
 
 }	
 
-float get_triangle_type(TriangleResult* result, ComputeParameters* p, int gridSize, int blockSize) 
+float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize, int blockSize) 
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -420,7 +420,6 @@ float get_triangle_type(TriangleResult* result, ComputeParameters* p, int gridSi
 	double tau_to_current_time_level = (1. + p->currentTimeLevel * p->tau) / 10.;
 	double tau_b = p->b * p->tau;
 	n = p->get_inner_matrix_size();
-	//length = p->get_inner_chuck_size();
 	length = p->get_inner_matrix_size();
 	
 
@@ -465,16 +464,11 @@ float get_triangle_type(TriangleResult* result, ComputeParameters* p, int gridSi
 	SoATriangle *soa = new SoATriangle(p->get_inner_matrix_size());
 	
     size = sizeof(double) * p->get_chunk_size();
-	/*for (int i = 0; i < p->get_part_count(); ++i) 
-	{*/
-		// надо сокращать количество регистров, а то всего 1 блок на SM запускается и окупанси маленькая
-		//
-		get_triangle_coordinates_kernel<<<gridSize, blockSize>>>(soa->first1, soa->second1, soa->third1, 
-			soa->first2, soa->second2, soa->third2,
-			alpha, beta, gamma, theta
-			//p->get_inner_chuck_size() * i);
-			);
-	//}
+	// надо сокращать количество регистров, а то всего 1 блок на SM запускается и окупанси маленькая
+	//
+	get_quad_coord<<<gridSize, blockSize>>>(soa->first1, soa->second1, soa->third1, 
+		soa->first2, soa->second2, soa->third2,
+		alpha, beta, gamma, theta);
 	cudaEventRecord(stop, 0);
 	cudaEventSynchronize(stop);
 

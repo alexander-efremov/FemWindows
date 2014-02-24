@@ -9,13 +9,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="headers\Common.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\Timer.h">
-      <Filter>headers</Filter>
-    </ClInclude>
     <ClInclude Include="headers\const.h">
+      <Filter>headers</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\common.h">
       <Filter>headers</Filter>
     </ClInclude>
   </ItemGroup>

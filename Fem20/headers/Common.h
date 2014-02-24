@@ -431,7 +431,7 @@ void write_openmp_stress_test_info(std::string &filename, int threadNumber, int 
 
 
 extern double h_analytSolut(double t, double x, double y );
-extern float get_triangle_type(TriangleResult* result, ComputeParameters* p, int gridSize, int blockSize);
+extern float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize, int blockSize);
 extern double h_f_function(ComputeParameters p, const int currentTimeLevel, const int i, const int j);
 extern double h_f_function(ComputeParameters* p, const int currentTimeLevel, const int i, const int j);
 

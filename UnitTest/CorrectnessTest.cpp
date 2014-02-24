@@ -257,7 +257,7 @@ TEST_F(GpuFemTest, get_quad_coord)
 
 		std::cout << "chunk = " << p->get_chunk_size() << std::endl;
 		TriangleResult* gpu = new TriangleResult(p);
-		get_triangle_type(gpu, p, gridSize, blockSize);
+		get_quad_coord(gpu, p, gridSize, blockSize);
 
 		// get cpu data
 		Triangle f = Triangle();
@@ -336,7 +336,7 @@ TEST_F(GpuFemTest, get_quad_coord_time_elapsed)
 		for (int i = 1; i < tc; i++)
 		{
 			p->currentTimeLevel = i;
-			time_gpu += get_triangle_type(gpu, p, gridSize, blockSize);
+			time_gpu += get_quad_coord(gpu, p, gridSize, blockSize);
 		}
 		printf("End GPU\n");
 
