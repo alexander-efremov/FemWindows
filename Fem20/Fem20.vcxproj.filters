@@ -4,68 +4,32 @@
     <Filter Include="src">
       <UniqueIdentifier>{2cf24ab1-bf86-4757-b7ef-ff2a5661882b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="utils">
-      <UniqueIdentifier>{298bfebb-9098-4237-8416-f65fb2ef692e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="headers">
       <UniqueIdentifier>{4b80c579-e140-4393-b896-243a074f80be}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\cuda">
-      <UniqueIdentifier>{dbe53110-dfd4-4d5e-911b-fe71f5835598}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\Common.h">
       <Filter>headers</Filter>
     </ClInclude>
-    <ClInclude Include="headers\Const.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\Logger.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\LowOrdOper.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\LowOrdOperCuda.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\OriginPrint.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\SpecialPrint.h">
-      <Filter>headers</Filter>
-    </ClInclude>
-    <ClInclude Include="headers\TriangleCuda.h">
-      <Filter>headers</Filter>
-    </ClInclude>
     <ClInclude Include="headers\Timer.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="headers\const.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="utils\Common.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="utils\Logger.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="utils\OriginPrint.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="utils\SpecialPrint.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="src\LowOrdOper.cpp">
+    <CudaCompile Include="get_quad_coord.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+    <CudaCompile Include="src\cuda\low_ord_oper.cu">
+      <Filter>src</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\low_ord_oper.cpp">
       <Filter>src</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="src\cuda\LowOrdOperCuda.cu">
-      <Filter>src\cuda</Filter>
-    </CudaCompile>
-    <CudaCompile Include="src\TriangleCuda.cu">
-      <Filter>src\cuda</Filter>
-    </CudaCompile>
   </ItemGroup>
 </Project>

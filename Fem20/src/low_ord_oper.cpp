@@ -3,10 +3,9 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
-#include "../headers/Common.h"
-#include "../headers/SpecialPrint.h"
-#include "../headers/LowOrdOper.h"
-#include "../headers/Logger.h"
+
+#define C_pi_device 3.14159265358979323846264338327
+
 using namespace std;
 
 double h_u_function(double par_b, double t, double x,
@@ -2807,7 +2806,7 @@ double* solve_cpu_test(
 	int varNumOfOYSt = numOfOYSt;
 	double *rhoInCurrTL_asV = NULL;
 	double anSol;
-	Logger logger;
+	
 	double buf_D;
 	int j,k;
 	bool bul;
@@ -2856,8 +2855,7 @@ double* solve_cpu_test(
 		//
 		rhoInCurrTL_asV ); //   -  Rho (solution) in Current (Last) Time Level.
 
-	logger.WriteCpuResultToFile(rhoInCurrTL_asV, varNumOfOXSt +1, varNumOfOYSt +1, varNumOfTSt);
-
+	
 	delete[] varMasOX;
 	delete[] varMasOY;
 	cout << std::endl;

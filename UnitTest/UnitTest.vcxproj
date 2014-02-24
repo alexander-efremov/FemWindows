@@ -74,7 +74,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>C:\gtest-1.7.0\include;C:\gtest-1.7.0;$(SolutionDir)\Utils\;$(SolutionDir)\Fem20\headers;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\Debug;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program Files %28x86%29\Visual Leak Detector\lib\Win64;$(SolutionDir)\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -157,9 +157,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CommonTest.cpp" />
     <ClCompile Include="CorrectnessTest.cpp" />
-    <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Fem20\Fem20.vcxproj">
@@ -180,9 +178,6 @@
     <Text Include="41_41_200_cpu_model.txt" />
     <Text Include="641_641_3200_cpu_model.txt" />
     <Text Include="81_81_400_cpu_model.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="CorrectnessTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

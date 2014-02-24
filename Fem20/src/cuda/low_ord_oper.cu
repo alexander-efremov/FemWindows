@@ -1,12 +1,11 @@
 ﻿#include "cuda.h"
 #include "cuda_runtime.h"
-#include<stdio.h>
-#include<stdlib.h>
-#include "../../headers/SpecialPrint.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "math.h"
+#include "../../headers/hemi.h"
 #include "../../headers/Common.h"
-#include "../../headers/TriangleCuda.h"
-#include "../../Headers/hemi.h"
-#include "../../Headers/array.h"
+
 
 double u_function_cuda(double par_b, double t, double x, double y)
 {
@@ -61,6 +60,12 @@ double h_analytSolut(double t, double x, double y )
 __device__ double d_analytSolut(double t, double x, double y )
 {
     return 1.1  +  sin( t * x * y);
+}
+
+double d_initDataOfSol(ComputeParameters* p, int i, int j)
+{
+    return 
+		1.1  +  sin( 0.* p->x[ i ] * p->y[ j ]);
 }
 
 double d_initDataOfSol(ComputeParameters p, int i, int j)
@@ -589,9 +594,18 @@ double h_bottomBound(ComputeParameters& p)
     return h_analytSolut(p.tau*p.currentTimeLevel, p.x[p.i], p.bb );
 }
 
+double h_bottomBound(ComputeParameters* p)
+{
+    return h_analytSolut(p->tau*p->currentTimeLevel, p->x[p->i], p->bb );
+}
+
 double h_upperBound(ComputeParameters& p)
 {
     return  h_analytSolut(p.tau*p.currentTimeLevel, p.x[p.i],  p.ub );
+}
+double h_upperBound(ComputeParameters* p)
+{
+    return  h_analytSolut(p->tau*p->currentTimeLevel, p->x[p->i],  p->ub );
 }
 
 double h_rightBound(ComputeParameters& p)
@@ -599,9 +613,19 @@ double h_rightBound(ComputeParameters& p)
     return h_analytSolut(p.tau*p.currentTimeLevel, p.rb, p.y[p.j] );
 }
 
+double h_rightBound(ComputeParameters* p)
+{
+    return h_analytSolut(p->tau*p->currentTimeLevel, p->rb, p->y[p->j] );
+}
+
 double h_leftBound(ComputeParameters& p)
 {
     return h_analytSolut(p.tau*p.currentTimeLevel, p.lb, p.y[p.j]);
+}
+
+double h_leftBound(ComputeParameters* p)
+{
+    return h_analytSolut(p->tau*p->currentTimeLevel, p->lb, p->y[p->j]);
 }
 
 __device__ double d_integOfChan_SLLeftSd(                          //   -  The domain is Channel with Slant Line on the left side.
@@ -1904,7 +1928,29 @@ double h_f_function(ComputeParameters p, const int currentTimeLevel, const int i
     return dRhoDT   +   rho * duDX   +   u * dRhoDX   +   rho * dvDY   +   v * dRhoDY;
 }
 
-int h_quadrAngleType(ComputeParameters& p, Triangle& firstT,	Triangle& secondT)
+double h_f_function(ComputeParameters* p, const int currentTimeLevel, const int i, const int j)
+{
+    double t  =  p->tau * currentTimeLevel;
+    double x  =  p->x[ i ];
+    double y  =  p->y[ j ];
+
+    double arg_v  =  (x - p->lb) * (x - p->rb) * (1.+t) /10. * (y - p->ub) * (y - p->bb);
+    double rho, dRhoDT, dRhoDX, dRhoDY;
+    double u, duDX;
+    double v, dvDY;
+    rho  =  h_analytSolut(t, x, y );
+    dRhoDT  =  x * y * cos( t*x*y );
+    dRhoDX  =  t * y * cos( t*x*y );
+    dRhoDY  =  t * x * cos( t*x*y );
+    u  =  h_u_function_cuda(p->b, t, x, y );
+    duDX  = -p->b * y * (1.-y)  /  ( 1.  +  x * x );
+    v  =  h_v_function_cuda(p->lb, p->rb, p->bb, p->ub, t, x, y );
+    dvDY  =  (x - p->lb) * (x - p->rb) * (1.+t) /10. * (y - p->bb + y - p->ub);
+    dvDY  =  dvDY  /  ( 1.  +  arg_v * arg_v );
+    return dRhoDT   +   rho * duDX   +   u * dRhoDX   +   rho * dvDY   +   v * dRhoDY;
+}
+
+int h_quadrAngleType(ComputeParameters* p, Triangle& firstT,	Triangle& secondT)
 {
     int qAngType = 0;
 
@@ -1926,75 +1972,83 @@ int h_quadrAngleType(ComputeParameters& p, Triangle& firstT,	Triangle& secondT)
 
     //  OX:
 
-    if( p.i == 0 ) {
-        alpha[0]  =  p.x[ p.i ];
-        betta[0]  =  ( p.x[p.i]  +  p.x[p.i +1] ) /2.;
-        gamma[0]  =  ( p.x[p.i]  +  p.x[p.i +1] ) /2.;
-        theta[0]  =  p.x[ p.i ];
+    if( p->i == 0 ) {
+        alpha[0]  =  p->x[ p->i ];
+        betta[0]  =  ( p->x[p->i]  +  p->x[p->i +1] ) /2.;
+        gamma[0]  =  ( p->x[p->i]  +  p->x[p->i +1] ) /2.;
+        theta[0]  =  p->x[ p->i ];
     }
 
-    if( p.i == p.x_size ) {
-        alpha[0]  =  ( p.x[p.i -1]  +  p.x[p.i] ) /2.;
-        betta[0]  =  p.x[ p.i ];
-        gamma[0]  =  p.x[ p.i ];
-        theta[0]  =  ( p.x[p.i -1]  +  p.x[p.i] ) /2.;
+    if( p->i == p->x_size ) {
+        alpha[0]  =  ( p->x[p->i -1]  +  p->x[p->i] ) /2.;
+        betta[0]  =  p->x[ p->i ];
+        gamma[0]  =  p->x[ p->i ];
+        theta[0]  =  ( p->x[p->i -1]  +  p->x[p->i] ) /2.;
     }
 
-    if( (p.i > 0)  &&  (p.i < p.x_size) ) {
-        alpha[0]  =  ( p.x[p.i -1]  +  p.x[p.i] ) /2.;
-        betta[0]  =  ( p.x[p.i +1]  +  p.x[p.i] ) /2.;
-        gamma[0]  =  ( p.x[p.i +1]  +  p.x[p.i] ) /2.;
-        theta[0]  =  ( p.x[p.i -1]  +  p.x[p.i] ) /2.;
+    if( (p->i > 0)  &&  (p->i < p->x_size) ) {
+        alpha[0]  =  ( p->x[p->i -1]  +  p->x[p->i] ) /2.;
+        betta[0]  =  ( p->x[p->i +1]  +  p->x[p->i] ) /2.;
+        gamma[0]  =  ( p->x[p->i +1]  +  p->x[p->i] ) /2.;
+        theta[0]  =  ( p->x[p->i -1]  +  p->x[p->i] ) /2.;
     }
 
     //  OY:
-    if( p.j == 0 ) {
-        alpha[1]  =  p.y[ p.j ];
-        betta[1]  =  p.y[ p.j ];
-        gamma[1]  =  ( p.y[p.j]  +  p.y[ p.j +1] ) /2.;
-        theta[1]  =  ( p.y[p.j]  +  p.y[ p.j +1] ) /2.;
+    if( p->j == 0 ) {
+        alpha[1]  =  p->y[ p->j ];
+        betta[1]  =  p->y[ p->j ];
+        gamma[1]  =  ( p->y[p->j]  +  p->y[ p->j +1] ) /2.;
+        theta[1]  =  ( p->y[p->j]  +  p->y[ p->j +1] ) /2.;
     }
 
-    if( p.j == p.y_size ) {
-        alpha[1]  =  ( p.y[p.j]  +  p.y[ p.j -1] ) /2.;
-        betta[1]  =  ( p.y[p.j]  +  p.y[ p.j -1] ) /2.;
-        gamma[1]  =  p.y[ p.j ];
-        theta[1]  =  p.y[ p.j ];
+    if( p->j == p->y_size ) {
+        alpha[1]  =  ( p->y[p->j]  +  p->y[ p->j -1] ) /2.;
+        betta[1]  =  ( p->y[p->j]  +  p->y[ p->j -1] ) /2.;
+        gamma[1]  =  p->y[ p->j ];
+        theta[1]  =  p->y[ p->j ];
     }
 
-    if( (p.j > 0) && (p.j < p.y_size) ) {
-        alpha[1]  =  ( p.y[p.j]  +  p.y[ p.j -1] ) /2.;
-        betta[1]  =  ( p.y[p.j]  +  p.y[ p.j -1] ) /2.;
-        gamma[1]  =  ( p.y[p.j]  +  p.y[ p.j +1] ) /2.;
-        theta[1]  =  ( p.y[p.j]  +  p.y[ p.j +1] ) /2.;
+    if( (p->j > 0) && (p->j < p->y_size) ) {
+        alpha[1]  =  ( p->y[p->j]  +  p->y[ p->j -1] ) /2.;
+        betta[1]  =  ( p->y[p->j]  +  p->y[ p->j -1] ) /2.;
+        gamma[1]  =  ( p->y[p->j]  +  p->y[ p->j +1] ) /2.;
+        theta[1]  =  ( p->y[p->j]  +  p->y[ p->j +1] ) /2.;
     }
 
     //   2. Now let's compute new coordinates on the previous time level of alpha, betta, gamma, theta points.
     //  alNew.
 
-    u = u_function_cuda( p.b,   p.currentTimeLevel * p.tau, alpha[0], alpha[1] );
-    v = v_function_cuda( p.lb, p.rb,   p.bb, p.ub,   p.currentTimeLevel * p.tau, alpha[0], alpha[1] );
-    alNew[0]  =  alpha[0]  -  p.tau * u;
-    alNew[1]  =  alpha[1]  -  p.tau * v;
+    u = u_function_cuda( p->b,   p->currentTimeLevel * p->tau, alpha[0], alpha[1] );
+    v = v_function_cuda( p->lb, p->rb,   p->bb, p->ub,   p->currentTimeLevel * p->tau, alpha[0], alpha[1] );
+    alNew[0]  =  alpha[0]  -  p->tau * u;
+    alNew[1]  =  alpha[1]  -  p->tau * v;
+
+	int pn = (p->x_size - 1) * (p->j - 1) + (p->i - 1);
+	
+	if (pn == 192801)
+	{
+		printf("alNew cpu = %f\n", alNew[0]);
+		printf("alNew cpu = %f\n", alNew[1]);
+	}
 
     //  beNew.
-    u = u_function_cuda( p.b,   p.currentTimeLevel * p.tau, betta[0], betta[1] );
-    v = v_function_cuda( p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau, betta[0], betta[1] );
-    beNew[0]  =  betta[0]  -  p.tau * u;
-    beNew[1]  =  betta[1]  -  p.tau * v;
+    u = u_function_cuda( p->b,   p->currentTimeLevel * p->tau, betta[0], betta[1] );
+    v = v_function_cuda( p->lb, p->rb, p->bb, p->ub, p->currentTimeLevel * p->tau, betta[0], betta[1] );
+    beNew[0]  =  betta[0]  -  p->tau * u;
+    beNew[1]  =  betta[1]  -  p->tau * v;
 
     //  gaNew.
 
-    u = u_function_cuda( p.b, p.currentTimeLevel * p.tau, gamma[0], gamma[1] );
-    v = v_function_cuda( p.lb, p.rb, p.bb, p.ub, p.currentTimeLevel * p.tau, gamma[0], gamma[1] );
-    gaNew[0]  =  gamma[0]  -  p.tau * u;
-    gaNew[1]  =  gamma[1]  -  p.tau * v;
+    u = u_function_cuda( p->b, p->currentTimeLevel * p->tau, gamma[0], gamma[1] );
+    v = v_function_cuda( p->lb, p->rb, p->bb, p->ub, p->currentTimeLevel * p->tau, gamma[0], gamma[1] );
+    gaNew[0]  =  gamma[0]  -  p->tau * u;
+    gaNew[1]  =  gamma[1]  -  p->tau * v;
 
     //  thNew.
-    u = u_function_cuda( p.b,   p.currentTimeLevel * p.tau, theta[0], theta[1] );
-    v = v_function_cuda( p.lb, p.rb, p.bb, p.ub,   p.currentTimeLevel * p.tau, theta[0], theta[1] );
-    thNew[0]  =  theta[0]  -  p.tau * u;
-    thNew[1]  =  theta[1]  -  p.tau * v;
+    u = u_function_cuda( p->b,   p->currentTimeLevel * p->tau, theta[0], theta[1] );
+    v = v_function_cuda( p->lb, p->rb, p->bb, p->ub,   p->currentTimeLevel * p->tau, theta[0], theta[1] );
+    thNew[0]  =  theta[0]  -  p->tau * u;
+    thNew[1]  =  theta[1]  -  p->tau * v;
 
     //   3.a Let's compute coefficients of first line betweeen "alNew" and "gaNew" points.
     //   a_1LC * x  +  b_1LC * y  = c_1LC.
@@ -2643,3 +2697,4 @@ float solve_cuda_params(ComputeParameters p)
 {
     return 1.0;
 }
+
