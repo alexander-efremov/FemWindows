@@ -242,7 +242,7 @@ TEST_F(GpuFemTest, get_quad_coord)
 // ошибка на сетке 1280 на 1280, в одной точке
 	//const int finishLevel = 8;
 	//const int startLevel = 7;
-	const int finishLevel = 6;
+	const int finishLevel = 7;
 	const int startLevel = 5;
 	const int gridSize = 512;
 	const int blockSize = 1024;
@@ -310,7 +310,7 @@ TEST_F(GpuFemTest, get_quad_coord_time_elapsed)
 	double time_gpu = -1;
 	// для 2500 сетки не хватает памяти
 	int start_level = 6; // для этого не хватает памяти ( 8 Гб ) для треугольников
-	int finish_level = 7; 
+	int finish_level = 8; 
 	int tc = 0;
 	
 	Triangle f = Triangle();

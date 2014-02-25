@@ -130,11 +130,11 @@ __global__ void get_quad_coord(
 		//int opt = (i + offset)*2;
 		int opt = i*2;
 
-		if (i == 192801)
+		/*if (i == 192801)
 		{
 			printf("alnew = %f\n", alNew[opt]);
 			printf("alnew = %f\n", alNew[opt+1]);
-		}
+		}*/
 		
 		double vectAlGa[2], vectBeTh[2]; //   -  Vectors: 1) from "alNew" to "gaNew" 2) from "beNew" to "thNew".
 		double a_1LC, b_1LC, c_1LC; //   -  a_1LC * x  +  b_1LC * y  = c_1LC. Line equation through "alNew" and "gaNew".

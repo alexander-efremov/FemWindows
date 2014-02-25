@@ -2023,13 +2023,13 @@ int h_quadrAngleType(ComputeParameters* p, Triangle& firstT,	Triangle& secondT)
     alNew[0]  =  alpha[0]  -  p->tau * u;
     alNew[1]  =  alpha[1]  -  p->tau * v;
 
-	int pn = (p->x_size - 1) * (p->j - 1) + (p->i - 1);
+	/*int pn = (p->x_size - 1) * (p->j - 1) + (p->i - 1);
 	
 	if (pn == 192801)
 	{
 		printf("alNew cpu = %f\n", alNew[0]);
 		printf("alNew cpu = %f\n", alNew[1]);
-	}
+	}*/
 
     //  beNew.
     u = u_function_cuda( p->b,   p->currentTimeLevel * p->tau, betta[0], betta[1] );
