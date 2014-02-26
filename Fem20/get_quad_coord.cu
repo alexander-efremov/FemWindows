@@ -79,21 +79,24 @@ __constant__ int c_n;
 // и сэкономить 2*N памяти в основном ядре расчетов
 // Но самое главное - это сократить нагрузку на регистры в основном ядре, избежав спиллинга регистров в локальную память
 // Это позволит запускать на расчет бОльшие сетки. Глобальную память легче маштабировать нежели регистры
-__global__ void prepare_data_kernel(double *a_x, double *a_y, double* alpha, double* beta, double* gamma, double* theta)
+__global__ void prepare_data_kernel(double *a_x, double *a_y, 
+									double* first1, double* second1, double* third1, 
+									double* first2, double* second2, double* third2, 
+									double* alpha, double* beta, double* gamma, double* theta)
 {
 	for (int opt = hemiGetElementOffset(); opt < c_n; opt += hemiGetElementStride()) 
 	{
 		int i = opt % c_x_length + 1;
 		int j = opt / c_x_length + 1;
 		double x, y; 
-		
+
 		//   1. First of all let's compute coordinates of square vertexes.
 		// Для каждой координаты i, j определяем точки квадрата, описанный вокруг этой точки.
 		//   2. Now let's compute new coordinates on the previous time level of alpha, betta, gamma, theta points.
 		// определяем координаты данных точек на предыдущем временном слое
 
 		// можно еще соптимизировать константы
-   
+
 		// A
 		x = (a_x[i - 1] + a_x[i]) / 2.;
 		y = (a_y[j - 1] + a_y[j]) / 2.;
@@ -105,7 +108,7 @@ __global__ void prepare_data_kernel(double *a_x, double *a_y, double* alpha, dou
 		y = (a_y[j - 1] + a_y[j]) / 2.;
 		beta[2*opt] = x - c_tau_b * y * (1. - y) * (C_pi_device / 2. + atan(-x));
 		beta[2*opt+1] = y - c_tau * atan((x - c_lb) * (x - c_rb) * c_tau_to_current_time_level * (y - c_ub) * (y - c_bb));
-		   
+
 		// C
 		x = (a_x[i + 1] + a_x[i]) / 2.;
 		y = (a_y[j + 1] + a_y[j]) / 2.;
@@ -117,13 +120,27 @@ __global__ void prepare_data_kernel(double *a_x, double *a_y, double* alpha, dou
 		y = (a_y[j + 1] + a_y[j]) / 2.;
 		theta[2*opt] = x - c_tau_b * y * (1. - y) * (C_pi_device / 2. + atan(-x));
 		theta[2*opt+1] = y - c_tau * atan((x - c_lb) * (x - c_rb) * c_tau_to_current_time_level * (y - c_ub) * (y - c_bb));
+
+		first1[2*opt] = alpha[2*opt];
+		first1[2*opt+1] = alpha[2*opt + 1];
+		second1[2*opt] = beta[2*opt];
+		second1[2*opt+1] = beta[2*opt + 1];
+		third1[2*opt] = gamma[2*opt];
+		third1[2*opt+1] = gamma[2*opt + 1];
+
+		first2[2*opt] = alpha[2*opt];
+		first2[2*opt+1] = alpha[2*opt + 1];
+		second2[2*opt] = theta[2*opt];
+		second2[2*opt+1] = theta[2*opt + 1];
+		third2[2*opt] = gamma[2*opt];
+		third2[2*opt+1] = gamma[2*opt + 1]; 
 	}
 }
 
 __global__ void get_quad_coord(
 	double* first1, double* second1, double* third1, 
-									  double* first2, double* second2, double* third2, 
-									  const double* alNew, const double* beNew, const double* gaNew, const double* thNew) 
+	double* first2, double* second2, double* third2, 
+	const double* alNew, const double* beNew, const double* gaNew, const double* thNew) 
 {
 	for (int i = hemiGetElementOffset(); i < c_length; i += hemiGetElementStride()) 
 	{ 
@@ -132,10 +149,10 @@ __global__ void get_quad_coord(
 
 		/*if (i == 192801)
 		{
-			printf("alnew = %f\n", alNew[opt]);
-			printf("alnew = %f\n", alNew[opt+1]);
+		printf("alnew = %f\n", alNew[opt]);
+		printf("alnew = %f\n", alNew[opt+1]);
 		}*/
-		
+
 		double vectAlGa[2], vectBeTh[2]; //   -  Vectors: 1) from "alNew" to "gaNew" 2) from "beNew" to "thNew".
 		double a_1LC, b_1LC, c_1LC; //   -  a_1LC * x  +  b_1LC * y  = c_1LC. Line equation through "alNew" and "gaNew".
 		double a_2LC, b_2LC, c_2LC; //   -  a_2LC * x  +  b_2LC * y  = c_2LC. Line equation through "beNew" and "thNew".
@@ -390,7 +407,7 @@ __global__ void get_quad_coord(
 void convert(TriangleResult* result, SoATriangle* tr, int n)
 {
 	int k = 0;
-	
+
 	for (int i = 0; i < n; i++)
 	{
 		result->f[i].first[0] = tr->first1[k];
@@ -416,12 +433,13 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 	size_t size(0), length(0), n(0);
-	
+
 	double tau_to_current_time_level = (1. + p->currentTimeLevel * p->tau) / 10.;
 	double tau_b = p->b * p->tau;
+	float elapsedTime;
 	n = p->get_inner_matrix_size();
 	length = p->get_inner_matrix_size();
-	
+
 
 	// Start record
 	cudaEventRecord(start, 0);
@@ -440,15 +458,15 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 	// сначала расчитаем координаты точек на предыдущем временном слое
 	// резать сразу не будем, будем грузить все данные сразу
 	double *x = NULL, *y = NULL, *alpha = NULL, *beta = NULL, *gamma = NULL, *theta = NULL;
-	
+
 	//нельзя копировать столько данных, у х длина другая = N
 	size = sizeof(double) * p->get_real_x_size();
 	checkCuda(cudaMallocManaged(&x, size)    );
-	 
+
 	memcpy(x, p->x, size);
 	size = sizeof(double) * p->get_real_y_size();
 	checkCuda(cudaMallocManaged(&y, size)    );
-    memcpy(y, p->y, size);
+	memcpy(y, p->y, size);
 
 	size = sizeof(double) * p->get_inner_matrix_size();
 	checkCuda(cudaMallocManaged(&alpha, 2*size));
@@ -456,34 +474,31 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 	checkCuda(cudaMallocManaged(&gamma, 2*size));
 	checkCuda(cudaMallocManaged(&theta, 2*size));
 
-	prepare_data_kernel<<<gridSize, blockSize>>>(x, y, alpha, beta, gamma, theta);
-	
-	cudaFree(x);
-	cudaFree(y);
-
 	SoATriangle *soa = new SoATriangle(p->get_inner_matrix_size());
-	
-    size = sizeof(double) * p->get_chunk_size();
-	// надо сокращать количество регистров, а то всего 1 блок на SM запускается и окупанси маленькая
-	//
-	get_quad_coord<<<gridSize, blockSize>>>(soa->first1, soa->second1, soa->third1, 
+
+	prepare_data_kernel<<<gridSize, blockSize>>>(x, y, 
+		soa->first1, soa->second1, soa->third1, 
 		soa->first2, soa->second2, soa->third2,
 		alpha, beta, gamma, theta);
-	cudaEventRecord(stop, 0);
-	cudaEventSynchronize(stop);
 
 	convert(result, soa, p->get_inner_matrix_size());
 
+	cudaFree(x);
+	cudaFree(y);
 	cudaFree(alpha);
 	cudaFree(beta);
 	cudaFree(gamma);
 	cudaFree(theta);
-	delete soa;
-	// Clean up:
-	float elapsedTime;
+
+	cudaEventRecord(stop, 0);
+	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&elapsedTime, start, stop); // that's our time!
 	cudaEventDestroy(start);
 	cudaEventDestroy(stop);
 	cudaDeviceReset();
+
+	
+
+	delete soa;
 	return elapsedTime;
 }

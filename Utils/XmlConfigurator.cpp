@@ -9,6 +9,7 @@ void XmlConfigurator::LoadConfiguration()
 
 void XmlConfigurator::SetParams(const pugi::xml_document& doc)
 {
+	
 	pugi::xml_node startup = doc.child("Startup");
 	_startLevel = atoi(startup.child("StartLevel").child_value());
 	_finishLevel = atoi(startup.child("FinishLevel").child_value());

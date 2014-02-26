@@ -239,11 +239,13 @@ protected:
 
 TEST_F(GpuFemTest, get_quad_coord)
 {
+	std::cout << "get_quad_coord" << std::endl;
+
 // ошибка на сетке 1280 на 1280, в одной точке
 	//const int finishLevel = 8;
 	//const int startLevel = 7;
 	const int finishLevel = 7;
-	const int startLevel = 5;
+	const int startLevel = 0;
 	const int gridSize = 512;
 	const int blockSize = 1024;
 	const int needPrint = 0;
