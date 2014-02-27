@@ -38,7 +38,7 @@ __constant__ int c_n;
 // и сэкономить 2*N памяти в основном ядре расчетов
 // Но самое главное - это сократить нагрузку на регистры в основном ядре, избежав спиллинга регистров в локальную память
 // Это позволит запускать на расчет бОльшие сетки. Глобальную память легче маштабировать нежели регистры
-__global__ void prepare_data_kernel(double *a_x, double *a_y,
+__global__ void get_square_coord(double *a_x, double *a_y,
 	double* first1, double* second1, double* third1,
 	double* first2, double* second2, double* third2)
 {
@@ -156,7 +156,7 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 	checkCuda(cudaMallocManaged(&second2, size));
 	checkCuda(cudaMallocManaged(&third2, size));
 
-	prepare_data_kernel<<<gridSize, blockSize>>>(x, y, first1, second1, third1, first2, second2, third2);
+	get_square_coord<< <gridSize, blockSize >> >(x, y, first1, second1, third1, first2, second2, third2);
 	
 	cudaEventRecord(stop, 0);
 	cudaEventSynchronize(stop);
