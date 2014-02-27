@@ -19,7 +19,7 @@ protected:
 
 	FemTest()
 	{
-		_accuracy = 1.0e-8;
+		_accuracy = 1.0e-16;
 		initCompOfGlVar();
 		_modelDataProvider = ModelDataProvider();
 	}

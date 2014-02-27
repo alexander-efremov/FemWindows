@@ -29,7 +29,9 @@
     <ClCompile Include="src\low_ord_oper.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="src\cuda\low_ord_oper.cu" />
+    <CudaCompile Include="src\cuda\low_ord_oper.cu">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6CE8F325-82A7-43A1-88E9-A01981F9C5A1}</ProjectGuid>
