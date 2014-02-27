@@ -38,43 +38,36 @@ __constant__ int c_n;
 // и сэкономить 2*N памяти в основном ядре расчетов
 // Но самое главное - это сократить нагрузку на регистры в основном ядре, избежав спиллинга регистров в локальную память
 // Это позволит запускать на расчет бОльшие сетки. Глобальную память легче маштабировать нежели регистры
-__global__ void get_square_coord(double *a_x, double *a_y,
-	double* first1, double* second1, double* third1,
+__global__ void get_square_coord(double* first1, double* second1, double* third1,
 	double* first2, double* second2, double* third2)
 {
 	for (int opt = hemiGetElementOffset(); opt < c_n; opt += hemiGetElementStride())
 	{
 		int i = opt % c_x_length + 1;
 		int j = opt / c_x_length + 1;
-		double x, y;
-
-
-
-		// Для каждой координаты i, j определяем точки квадрата, описанный вокруг этой точки.
-		// определяем координаты данных точек на предыдущем временном слое
-		// можно еще соптимизировать константы
-
+		double x, y, h = 1. / (c_x_length + 1);
+		
 		// A
-		x = (a_x[i - 1] + a_x[i]) / 2.;
-		y = (a_y[j - 1] + a_y[j]) / 2.;
+		x = (h*(i - 1) + h*i) / 2.;
+		y = (h*(j - 1) + h*j) / 2.;
 		first1[2 * opt] = first2[2 * opt] = x - c_tau_b * y * (1. - y) * (c_pi_half + atan(-x));
 		first1[2 * opt + 1] = first2[2 * opt + 1] = y - c_tau * atan((x - c_lb) * (x - c_rb) * c_tau_to_current_time_level * (y - c_ub) * (y - c_bb));
 
 		// B
-		x = (a_x[i + 1] + a_x[i]) / 2.;
-		y = (a_y[j - 1] + a_y[j]) / 2.;
+		x = (h*(i + 1) + h*i) / 2.;
+	    //	y = (h*(j - 1) + h*j) / 2.; // это значение совпадает со значением для предыдущей точки значит его можно не расчитывать
 		second1[2 * opt] = x - c_tau_b * y * (1. - y) * (c_pi_half + atan(-x));
 		second1[2 * opt + 1] = y - c_tau * atan((x - c_lb) * (x - c_rb) * c_tau_to_current_time_level * (y - c_ub) * (y - c_bb));
 
 		// C
-		x = (a_x[i + 1] + a_x[i]) / 2.;
-		y = (a_y[j + 1] + a_y[j]) / 2.;
+		//x = (a_x[i + 1] + a_x[i]) / 2.; // это значение совпадает со значением для предыдущей точки значит его можно не расчитывать
+		y = (h*(j + 1) + h*j) / 2.;
 		third1[2 * opt] = third2[2 * opt] = x - c_tau_b * y * (1. - y) * (c_pi_half + atan(-x));
 		third1[2 * opt + 1] = third2[2 * opt + 1] = y - c_tau * atan((x - c_lb) * (x - c_rb) * c_tau_to_current_time_level * (y - c_ub) * (y - c_bb));
 
 		// D
-		x = (a_x[i - 1] + a_x[i]) / 2.;
-		y = (a_y[j + 1] + a_y[j]) / 2.;
+		x = (h*(i - 1) + h*i) / 2.;
+		//y = (a_y[j + 1] + a_y[j]) / 2.; // это значение совпадает со значением для предыдущей точки значит его можно не расчитывать
 		second2[2 * opt] = x - c_tau_b * y * (1. - y) * (c_pi_half + atan(-x));
 		second2[2 * opt + 1] = y - c_tau * atan((x - c_lb) * (x - c_rb) * c_tau_to_current_time_level * (y - c_ub) * (y - c_bb));
 	}
@@ -115,7 +108,7 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 
 
 	float elapsedTime;
-	double *x = NULL, *y = NULL, *first1 = NULL, *second1 = NULL, *third1 = NULL, *first2 = NULL, *second2 = NULL, *third2 = NULL;
+	double *first1 = NULL, *second1 = NULL, *third1 = NULL, *first2 = NULL, *second2 = NULL, *third2 = NULL;
 
 	// Start record
 	cudaEventRecord(start, 0);
@@ -137,17 +130,6 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 	temp = C_pi_device / 2.;
 	cudaMemcpyToSymbol(c_pi_half, &temp, sizeof(double));
 	
-	// сначала расчитаем координаты точек на предыдущем временном слое
-	// резать сразу не будем, будем грузить все данные сразу
-	//нельзя копировать столько данных, у х длина другая = N
-	size = sizeof(double)* p->get_real_x_size();
-	checkCuda(cudaMallocManaged(&x, size));
-	memcpy(x, p->x, size);
-
-	size = sizeof(double)* p->get_real_y_size();
-	checkCuda(cudaMallocManaged(&y, size));
-	memcpy(y, p->y, size);
-
 	size = 2 * sizeof(double)*n;
 	checkCuda(cudaMallocManaged(&first1, size));
 	checkCuda(cudaMallocManaged(&second1, size));
@@ -156,7 +138,7 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 	checkCuda(cudaMallocManaged(&second2, size));
 	checkCuda(cudaMallocManaged(&third2, size));
 
-	get_square_coord<< <gridSize, blockSize >> >(x, y, first1, second1, third1, first2, second2, third2);
+	get_square_coord<< <gridSize, blockSize >> >(first1, second1, third1, first2, second2, third2);
 	
 	cudaEventRecord(stop, 0);
 	cudaEventSynchronize(stop);
@@ -170,8 +152,6 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 	cudaFree(first2);
 	cudaFree(second2);
 	cudaFree(third2);
-	cudaFree(x);
-	cudaFree(y);
 	cudaEventDestroy(start);
 	cudaEventDestroy(stop);
 	
