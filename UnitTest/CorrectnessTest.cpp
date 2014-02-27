@@ -9,7 +9,7 @@
 #endif
 #define FULL_TEST false
 
-class FemTest: public testing::Test
+class TestBase: public testing::Test
 {
 protected:
 	double _accuracy;
@@ -17,14 +17,14 @@ protected:
 	
 	ModelDataProvider _modelDataProvider;
 
-	FemTest()
+	TestBase()
 	{
-		_accuracy = 1.0e-16;
+		_accuracy = 1.0e-8;
 		initCompOfGlVar();
 		_modelDataProvider = ModelDataProvider();
 	}
 
-	virtual ~FemTest()
+	virtual ~TestBase()
 	{
 		// You can do clean-up work that doesn't throw exceptions here.
 		memClean();
@@ -51,15 +51,15 @@ protected:
 	}
 };
 
-class CpuFemTest: public FemTest
+class CpuTest: public TestBase
 {
 protected:
 
-	CpuFemTest()
+	CpuTest()
 	{
 	}
 
-	virtual ~CpuFemTest()
+	virtual ~CpuTest()
 	{
 	}
 
@@ -71,18 +71,19 @@ protected:
 	}
 };
 
-TEST_F(CpuFemTest, CpuTestModel11)
+TEST_F(CpuTest, CpuTestModel11)
 {
 	double* data = _modelDataProvider.GetModelData(Model11);
 	double* result = GetCpuToLevel(0);
 
 	for (int i = 0; i < GetSize(); i++)
 	{
-		EXPECT_TRUE(data[i] - result[i] <= _accuracy);
+		ASSERT_TRUE(abs(data[i] - result[i]) <= _accuracy) << data[i] << " " << result[i];
+		
 	}
 }
 
-TEST_F(CpuFemTest, CpuTestModel21)
+TEST_F(CpuTest, CpuTestModel21)
 {
 	double* data = _modelDataProvider.GetModelData(Model21);
 	double* result = GetCpuToLevel(1);
@@ -93,7 +94,7 @@ TEST_F(CpuFemTest, CpuTestModel21)
 	}
 }
 
-TEST_F(CpuFemTest, CpuTestModel41)
+TEST_F(CpuTest, CpuTestModel41)
 {
 	if (FULL_TEST)
 	{
@@ -107,7 +108,7 @@ TEST_F(CpuFemTest, CpuTestModel41)
 	}
 }
 
-TEST_F(CpuFemTest, CpuTestModel81)
+TEST_F(CpuTest, CpuTestModel81)
 {
 	if (FULL_TEST)
 	{
@@ -121,7 +122,7 @@ TEST_F(CpuFemTest, CpuTestModel81)
 	}
 }
 
-TEST_F(CpuFemTest, CpuTestModel161)
+TEST_F(CpuTest, CpuTestModel161)
 {
 	if (FULL_TEST)
 	{
@@ -135,7 +136,7 @@ TEST_F(CpuFemTest, CpuTestModel161)
 	}
 }
 
-TEST_F(CpuFemTest, CpuTestModel321)
+TEST_F(CpuTest, CpuTestModel321)
 {
 	if (FULL_TEST)
 	{
@@ -149,7 +150,7 @@ TEST_F(CpuFemTest, CpuTestModel321)
 	}
 }
 
-TEST_F(CpuFemTest, CpuTestModel641)
+TEST_F(CpuTest, CpuTestModel641)
 {
 	if (FULL_TEST)
 	{
@@ -163,7 +164,7 @@ TEST_F(CpuFemTest, CpuTestModel641)
 	}
 }
 
-TEST_F(CpuFemTest, CpuTestModel1281)
+TEST_F(CpuTest, CpuTestModel1281)
 {
 	if (FULL_TEST)
 	{
@@ -177,16 +178,16 @@ TEST_F(CpuFemTest, CpuTestModel1281)
 	}
 }
 
-class GpuFemTest: public FemTest
+class GpuTest: public TestBase
 {
 protected:
 
 
-	GpuFemTest()
+	GpuTest()
 	{
 	}
 
-	virtual ~GpuFemTest()
+	virtual ~GpuTest()
 	{
 	}
 
@@ -237,27 +238,20 @@ protected:
 
 
 
-TEST_F(GpuFemTest, get_quad_coord)
+TEST_F(GpuTest, get_quad_coord)
 {
-	std::cout << "get_quad_coord" << std::endl;
-
-// ошибка на сетке 1280 на 1280, в одной точке
-	//const int finishLevel = 8;
-	//const int startLevel = 7;
 	const int finishLevel = 7;
 	const int startLevel = 0;
 	const int gridSize = 512;
 	const int blockSize = 1024;
 	const int needPrint = 0;
-	const double error = 10e-16;
+	const double error = 1.0e-15;
 
 	for (int level = startLevel; level < finishLevel; ++level)
 	{
 		std::cout << "level = " << level << std::endl;
 		ComputeParameters* p = new ComputeParameters(level, false);
 		p->currentTimeLevel = 1;
-
-		std::cout << "chunk = " << p->get_chunk_size() << std::endl;
 		TriangleResult* gpu = new TriangleResult(p);
 		get_quad_coord(gpu, p, gridSize, blockSize);
 
@@ -304,15 +298,14 @@ TEST_F(GpuFemTest, get_quad_coord)
 	std::cin.get();
 }
 
-TEST_F(GpuFemTest, get_quad_coord_time_elapsed)
+TEST_F(GpuTest, get_quad_coord_time_elapsed)
 {
 	int gridSize = 512;
 	int blockSize = 1024;
 	double time_cpu = -1;
 	double time_gpu = -1;
-	// для 2500 сетки не хватает памяти
-	int start_level = 6; // для этого не хватает памяти ( 8 Гб ) для треугольников
 	int finish_level = 8; 
+	int start_level = 7;
 	int tc = 0;
 	
 	Triangle f = Triangle();
@@ -324,7 +317,7 @@ TEST_F(GpuFemTest, get_quad_coord_time_elapsed)
 		p->currentTimeLevel = 1;
 		
 		tc = p->t_count;
-		tc = 5;
+		tc = 100;
 		//tc = 2;
 		//tc = 100;
 		
@@ -373,15 +366,15 @@ TEST_F(GpuFemTest, get_quad_coord_time_elapsed)
 		delete gpu;
 		delete p;
 	}
-	std::cin.get();
+	//std::cin.get();
 }
 
 
 
 
 //основной тест
-//TEST_F(GpuFemTest, DISABLED_d_integUnderUnunifTr)
-TEST_F(GpuFemTest, d_integUnderUnunifTr)
+//TEST_F(GpuTest, DISABLED_d_integUnderUnunifTr)
+TEST_F(GpuTest, d_integUnderUnunifTr)
 {
 	//// параметры размерности задачи
 	//int levelStep = 1;
@@ -482,7 +475,7 @@ TEST_F(GpuFemTest, d_integUnderUnunifTr)
 }
 
 
-class CpuVersusGpuFunctionalFemTest: public FemTest
+class CpuVersusGpuFunctionalFemTest: public TestBase
 {
 protected:
 

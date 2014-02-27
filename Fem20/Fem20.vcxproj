@@ -137,8 +137,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <PtxAsOptionV>true</PtxAsOptionV>
       <AdditionalOptions>–Xptxas –v %(AdditionalOptions)</AdditionalOptions>
-      <MaxRegCount>
-      </MaxRegCount>
+      <MaxRegCount>52</MaxRegCount>
     </CudaCompile>
     <CudaLink>
       <AdditionalLibraryDirectories>cuda.lib;cudart.lib;vld.lib</AdditionalLibraryDirectories>
@@ -194,6 +193,8 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <MaxRegCount>32</MaxRegCount>
+      <PtxAsOptionV>true</PtxAsOptionV>
     </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
