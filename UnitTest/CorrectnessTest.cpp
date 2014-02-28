@@ -7,7 +7,7 @@
 #ifndef COMMON_H_INCLUDED
 #include "Common.h"
 #endif
-#define FULL_TEST true
+#define FULL_TEST false
 
 class TestBase : public testing::Test
 {
@@ -196,7 +196,7 @@ protected:
 
 TEST_F(GpuTest, get_quad_coord)
 {
-	const int finishLevel = 7;
+	const int finishLevel = 6;
 	const int startLevel = 0;
 	const double error = 1.0e-15;
 
@@ -247,7 +247,7 @@ TEST_F(GpuTest, get_quad_coord)
 		delete gpu;
 	}
 	std::cout << "Done!" << std::endl;
-	std::cin.get();
+	//std::cin.get();
 }
 
 TEST_F(GpuTest, get_quad_coord_te)

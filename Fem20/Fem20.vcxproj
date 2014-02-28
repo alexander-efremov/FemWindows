@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="headers\common.h" />
     <ClInclude Include="headers\const.h" />
+    <ClInclude Include="headers\hemi.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="get_quad_coord.cu">

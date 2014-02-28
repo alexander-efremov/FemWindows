@@ -15,6 +15,9 @@
     <ClInclude Include="headers\common.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="headers\hemi.h">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="get_quad_coord.cu">

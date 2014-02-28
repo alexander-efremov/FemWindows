@@ -1,6 +1,5 @@
 ﻿#include "cuda.h"
 #include "cuda_runtime.h"
-#include "headers/hemi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -27,7 +26,7 @@ __constant__ int c_n;
 __global__ void get_square_coord(double* first1, double* second1, double* third1,
 	double* first2, double* second2, double* third2)
 {
-	for (int opt = hemiGetElementOffset(); opt < c_n; opt += hemiGetElementStride())
+	for (int opt = blockIdx.x * blockDim.x + threadIdx.x; opt < c_n; opt += blockDim.x * gridDim.x)
 	{
 		int i = opt % c_x_length + 1;
 		int j = opt / c_x_length + 1;
@@ -62,12 +61,7 @@ __global__ void get_square_coord(double* first1, double* second1, double* third1
 void convert(TriangleResult* result, double* first1, double* second1, double* third1,
 	double* first2, double* second2, double* third2, size_t size)
 {
-	memcpy(result->first1, first1, size);
-	memcpy(result->second1, second1, size);
-	memcpy(result->third1, third1, size);
-	memcpy(result->first2, first2, size);
-	memcpy(result->second2, second2, size);
-	memcpy(result->third2, third2, size);
+
 }
 
 float get_quad_coord(TriangleResult* result, ComputeParameters* p)
@@ -76,7 +70,7 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p)
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 	size_t size(0), n(0);
-	int gridSize = 512; 
+	int gridSize = 512;
 	int blockSize = 1024;
 	double temp(0);
 	n = p->get_inner_matrix_size();
@@ -108,13 +102,13 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p)
 	cudaMemcpyToSymbol(c_pi_half, &temp, sizeof(double));
 
 	size = 2 * sizeof(double)*n;
-	checkCuda(cudaMallocManaged(&first1, size));
-	checkCuda(cudaMallocManaged(&second1, size));
-	checkCuda(cudaMallocManaged(&third1, size));
-	checkCuda(cudaMallocManaged(&first2, size));
-	checkCuda(cudaMallocManaged(&second2, size));
-	checkCuda(cudaMallocManaged(&third2, size));
-
+	cudaMalloc((void**)&(first1), size);
+	cudaMalloc((void**)&(second1), size);
+	cudaMalloc((void**)&(third1), size);
+	cudaMalloc((void**)&(first2), size);
+	cudaMalloc((void**)&(second2), size);
+	cudaMalloc((void**)&(third2), size);
+	
 
 	// можно это ядро раскидать на карточки 
 	// Вариант 1) На 1 карте считать first1, second1, third1, а на второй считать first2, second2, third2
@@ -125,7 +119,12 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p)
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&elapsedTime, start, stop);
 
-	convert(result, first1, second1, third1, first2, second2, third2, size);
+	cudaMemcpy(result->first1, first1, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(result->second1, second1, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(result->third1, third1, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(result->first2, first2, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(result->second2, second2, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(result->third2, third2, size, cudaMemcpyDeviceToHost);
 
 	cudaFree(first1);
 	cudaFree(second1);
