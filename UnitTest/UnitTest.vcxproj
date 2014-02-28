@@ -84,7 +84,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)\Utils;$(SolutionDir)\Fem20\headers;C:\gtest-1.7.0\include;C:\gtest-1.7.0;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\Release;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <LibraryPath>$(SolutionDir)\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -145,7 +145,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN64;_VARIADIC_MAX=10;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;_VARIADIC_MAX=10;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,11 +153,14 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart.lib;Utils.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart.lib</AdditionalDependencies>
+      <AdditionalOptions />
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CorrectnessTest.cpp" />
+    <ClCompile Include="FileReader.cpp" />
+    <ClCompile Include="ModelDataProvider.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Fem20\Fem20.vcxproj">
@@ -165,9 +168,6 @@
     </ProjectReference>
     <ProjectReference Include="..\GoogleTestBase\GoogleTestBase.vcxproj">
       <Project>{b2208a09-d601-4d45-92eb-877743c4678b}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\Utils\Utils.vcxproj">
-      <Project>{44f6d600-f4c5-4569-8061-22d2cbaa226f}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -178,6 +178,10 @@
     <Text Include="41_41_200_cpu_model.txt" />
     <Text Include="641_641_3200_cpu_model.txt" />
     <Text Include="81_81_400_cpu_model.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FileReader.h" />
+    <ClInclude Include="ModelDataProvider.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

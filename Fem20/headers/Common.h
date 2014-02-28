@@ -299,37 +299,37 @@ public:
 };
 
 
-struct Triangle
-{
-	double first[2];
-	double second[2];
-	double third[2];
-
-	friend std::ostream &operator<<( std::ostream &output,
-	                                 const Triangle &tr )
-	{
-		output << "First Point: ";
-		output << "x: " << tr.first[0] << " y: " << tr.first[1] << std::endl;
-		output << "Second Point: ";
-		output << "x: " << tr.second[0] << " y: " << tr.second[1] << std::endl;
-		output << "Third Point: ";
-		output << "x: " << tr.third[0] << " y: " << tr.third[1] << std::endl;
-		return output;
-	}
-
-	friend bool operator==(const Triangle& x, const Triangle& y)
-	{
-		double const error = 10e-16;
-		bool p1 = (fabs(x.first[0] - y.first[0] ) < error) && (fabs(x.first[1] - y.first[1] )< error);
-
-		bool p2 = (fabs(x.second[0] - y.second[0] ) < error) && (fabs(x.second[1] - y.second[1])< error);
-
-		bool p3 = (fabs(x.third[0] - y.third[0] ) < error) && (fabs(x.third[1] - y.third[1] )< error);
-
-
-		return p1 && p2 && p3;
-	}
-};
+//struct Triangle
+//{
+//	double first[2];
+//	double second[2];
+//	double third[2];
+//
+//	friend std::ostream &operator<<( std::ostream &output,
+//	                                 const Triangle &tr )
+//	{
+//		output << "First Point: ";
+//		output << "x: " << tr.first[0] << " y: " << tr.first[1] << std::endl;
+//		output << "Second Point: ";
+//		output << "x: " << tr.second[0] << " y: " << tr.second[1] << std::endl;
+//		output << "Third Point: ";
+//		output << "x: " << tr.third[0] << " y: " << tr.third[1] << std::endl;
+//		return output;
+//	}
+//
+//	friend bool operator==(const Triangle& x, const Triangle& y)
+//	{
+//		double const error = 10e-16;
+//		bool p1 = (fabs(x.first[0] - y.first[0] ) < error) && (fabs(x.first[1] - y.first[1] )< error);
+//
+//		bool p2 = (fabs(x.second[0] - y.second[0] ) < error) && (fabs(x.second[1] - y.second[1])< error);
+//
+//		bool p3 = (fabs(x.third[0] - y.third[0] ) < error) && (fabs(x.third[1] - y.third[1] )< error);
+//
+//
+//		return p1 && p2 && p3;
+//	}
+//};
 
 
 struct TriangleResult
@@ -338,9 +338,14 @@ private:
 	int chunk;
 
 public:
-	Triangle* f;
-	Triangle* s;
 
+	double* first1; 
+	double* second1;
+	double* third1;
+
+	double* first2;
+	double* second2; 
+	double* third2;
 	int length;
 	int x_length;
 	int y_length;
@@ -353,14 +358,22 @@ public:
 		x_length = param->x_size - 1;
 		y_length = param->y_size - 1;
 		chunk = param->get_inner_chuck_size();
-		f = new Triangle[param->get_inner_matrix_size()];
-		s = new Triangle[param->get_inner_matrix_size()];
+		first1 = new double[ 2*param->get_inner_matrix_size()];
+		first2 = new double[ 2*param->get_inner_matrix_size()];
+		second1 = new double[2*param->get_inner_matrix_size()];
+		second2 = new double[2*param->get_inner_matrix_size()];
+		third1 = new double[ 2*param->get_inner_matrix_size()];
+		third2 = new double[ 2*param->get_inner_matrix_size()];
 	}
 
 	~TriangleResult()
 	{
-		delete[] f;
-		delete[] s;
+		delete[] first1 ;
+		delete[] first2 ;
+		delete[] second1;
+		delete[] second2;
+		delete[] third1 ;
+		delete[] third2 ;
 	}
 
 	void setOffset(int part_index)
@@ -371,8 +384,6 @@ public:
 
 struct VertexData
 {
-	Triangle* f;
-	Triangle* s;
 	int* types;
 	int length;
 	int x_length;
@@ -431,7 +442,7 @@ void write_openmp_stress_test_info(std::string &filename, int threadNumber, int 
 
 
 extern double h_analytSolut(double t, double x, double y );
-extern float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize, int blockSize);
+extern float get_quad_coord(TriangleResult* result, ComputeParameters* p);
 extern double h_f_function(ComputeParameters p, const int currentTimeLevel, const int i, const int j);
 extern double h_f_function(ComputeParameters* p, const int currentTimeLevel, const int i, const int j);
 
@@ -457,9 +468,11 @@ extern float solve_cuda_params(ComputeParameters p);
 
 extern double d_solByEqualVolumes(ComputeParameters p);
 
-extern int h_quadrAngleType( ComputeParameters* p, Triangle& firstT, Triangle& secondT);
+extern void h_quadrAngleType(ComputeParameters* p, double* first_x1, double* second_x1, double* third_x1, double* first_x2, double* 
+	second_x2, double* third_x2,
+	double* first_y1, double* second_y1, double* third_y1, double* first_y2, double* second_y2, double* third_y2);
 
-extern int d_quadrAngleType(ComputeParameters& p, Triangle& firstT, Triangle& secondT);
+
 
 extern double d_integUnderUnunifTr(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).

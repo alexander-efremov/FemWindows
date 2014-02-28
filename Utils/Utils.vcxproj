@@ -28,7 +28,6 @@
   <ItemGroup>
     <ClCompile Include="FileReader.cpp" />
     <ClCompile Include="ModelDataProvider.cpp" />
-    <ClCompile Include="XmlConfigurator.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{44F6D600-F4C5-4569-8061-22D2CBAA226F}</ProjectGuid>

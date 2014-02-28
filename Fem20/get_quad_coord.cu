@@ -32,7 +32,7 @@ __global__ void get_square_coord(double* first1, double* second1, double* third1
 		int i = opt % c_x_length + 1;
 		int j = opt / c_x_length + 1;
 		double x, y;
-		
+
 		// A
 		x = (c_h*(i - 1) + c_h*i) / 2.;
 		y = (c_h*(j - 1) + c_h*j) / 2.;
@@ -41,7 +41,7 @@ __global__ void get_square_coord(double* first1, double* second1, double* third1
 
 		// B
 		x = (c_h*(i + 1) + c_h*i) / 2.;
-	    //	y = (c_h*(j - 1) + c_h*j) / 2.; // это значение совпадает со значением для предыдущей точки значит его можно не расчитывать
+		//	y = (c_h*(j - 1) + c_h*j) / 2.; // это значение совпадает со значением для предыдущей точки значит его можно не расчитывать
 		second1[2 * opt] = x - c_tau_b * y * (1. - y) * (c_pi_half + atan(-x));
 		second1[2 * opt + 1] = y - c_tau * atan((x - c_lb) * (x - c_rb) * c_tau_to_current_time_level * (y - c_ub) * (y - c_bb));
 
@@ -60,35 +60,24 @@ __global__ void get_square_coord(double* first1, double* second1, double* third1
 }
 
 void convert(TriangleResult* result, double* first1, double* second1, double* third1,
-	double* first2, double* second2, double* third2, int n)
+	double* first2, double* second2, double* third2, size_t size)
 {
-	int k = 0;
-
-	for (int i = 0; i < n; i++)
-	{
-		result->f[i].first[0] = first1[k];
-		result->f[i].first[1] = first1[k + 1];
-		result->f[i].second[0] = second1[k];
-		result->f[i].second[1] = second1[k + 1];
-		result->f[i].third[0] = third1[k];
-		result->f[i].third[1] = third1[k + 1];
-		result->s[i].first[0] = first2[k];
-		result->s[i].first[1] = first2[k + 1];
-		result->s[i].second[0] = second2[k];
-		result->s[i].second[1] = second2[k + 1];
-		result->s[i].third[0] = third2[k];
-		result->s[i].third[1] = third2[k + 1];
-		k += 2;
-	}
-
+	memcpy(result->first1, first1, size);
+	memcpy(result->second1, second1, size);
+	memcpy(result->third1, third1, size);
+	memcpy(result->first2, first2, size);
+	memcpy(result->second2, second2, size);
+	memcpy(result->third2, third2, size);
 }
 
-float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize, int blockSize)
+float get_quad_coord(TriangleResult* result, ComputeParameters* p)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 	size_t size(0), n(0);
+	int gridSize = 512; 
+	int blockSize = 1024;
 	double temp(0);
 	n = p->get_inner_matrix_size();
 
@@ -117,7 +106,7 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 
 	temp = C_pi_device / 2.;
 	cudaMemcpyToSymbol(c_pi_half, &temp, sizeof(double));
-	
+
 	size = 2 * sizeof(double)*n;
 	checkCuda(cudaMallocManaged(&first1, size));
 	checkCuda(cudaMallocManaged(&second1, size));
@@ -130,13 +119,13 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 	// можно это ядро раскидать на карточки 
 	// Вариант 1) На 1 карте считать first1, second1, third1, а на второй считать first2, second2, third2
 	// Вариант 2) На 1 карте считать first1, на второй second1 и т. д.
-	get_square_coord<< <gridSize, blockSize >> >(first1, second1, third1, first2, second2, third2);
-	
+	get_square_coord << <gridSize, blockSize >> >(first1, second1, third1, first2, second2, third2);
+
 	cudaEventRecord(stop, 0);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&elapsedTime, start, stop);
 
-	convert(result, first1, second1, third1, first2, second2, third2, n);
+	convert(result, first1, second1, third1, first2, second2, third2, size);
 
 	cudaFree(first1);
 	cudaFree(second1);
@@ -146,7 +135,7 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p, int gridSize,
 	cudaFree(third2);
 	cudaEventDestroy(start);
 	cudaEventDestroy(stop);
-	
+
 	cudaDeviceReset();
 	return elapsedTime;
 }

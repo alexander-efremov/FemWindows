@@ -1950,23 +1950,16 @@ double h_f_function(ComputeParameters* p, const int currentTimeLevel, const int 
     return dRhoDT   +   rho * duDX   +   u * dRhoDX   +   rho * dvDY   +   v * dRhoDY;
 }
 
-int h_quadrAngleType(ComputeParameters* p, Triangle& firstT,	Triangle& secondT)
+void h_quadrAngleType(ComputeParameters* p, double* first_x1, double* second_x1, double* third_x1, double* first_x2, double*
+	second_x2, double* third_x2,
+	double* first_y1, double* second_y1, double* third_y1, double* first_y2, double* second_y2, double* third_y2)
 {
-    int qAngType = 0;
+   
 
     double alpha[2], betta[2], gamma[2], theta[2];        //   -  Vertexes of square. Anticlockwise order from left botton vertex.
     double u, v;                                          //   -  Items of velocity components.
     double alNew[2], beNew[2], gaNew[2], thNew[2];        //   -  New positions of vertexes. Vertexes of quadrangle.
-    double vectAlGa[2], vectBeTh[2];                      //   -  Vectors: 1) from "alNew" to "gaNew" 2) from "beNew" to "thNew".
-    double a_1LC, b_1LC, c_1LC;                           //   -  a_1LC * x  +  b_1LC * y  = c_1LC. Line equation through "alNew" and "gaNew".
-    double a_2LC, b_2LC, c_2LC;                           //   -  a_2LC * x  +  b_2LC * y  = c_2LC. Line equation through "beNew" and "thNew".
-    double AcrP[2];                                       //   -  Across point of two lines
-    double vectAlBe[2];                                   //   -  Vectors for computing vertexes sequence order by vector production.
-    double vectAlTh[2];                                   //   -  Vectors for computing vertexes sequence order by vector production.
-    double vectBeGa[2];                                   //   -  Vectors for computing vertexes sequence order by vector production.
-    double vectBeAl[2];                                   //   -  Vectors for computing vertexes sequence order by vector production.
-    double vectProdOz;                                    //   -  Z-axis of vector production.
-    double scalProd;                                      //   -  Scalar production of two vectors.
+   
 
     //   1. First of all let's compute coordinates of square vertexes.
 
@@ -2023,14 +2016,6 @@ int h_quadrAngleType(ComputeParameters* p, Triangle& firstT,	Triangle& secondT)
     alNew[0]  =  alpha[0]  -  p->tau * u;
     alNew[1]  =  alpha[1]  -  p->tau * v;
 
-	/*int pn = (p->x_size - 1) * (p->j - 1) + (p->i - 1);
-	
-	if (pn == 192801)
-	{
-		printf("alNew cpu = %f\n", alNew[0]);
-		printf("alNew cpu = %f\n", alNew[1]);
-	}*/
-
     //  beNew.
     u = u_function_cuda( p->b,   p->currentTimeLevel * p->tau, betta[0], betta[1] );
     v = v_function_cuda( p->lb, p->rb, p->bb, p->ub, p->currentTimeLevel * p->tau, betta[0], betta[1] );
@@ -2050,311 +2035,20 @@ int h_quadrAngleType(ComputeParameters* p, Triangle& firstT,	Triangle& secondT)
     thNew[0]  =  theta[0]  -  p->tau * u;
     thNew[1]  =  theta[1]  -  p->tau * v;
 
-    //   3.a Let's compute coefficients of first line betweeen "alNew" and "gaNew" points.
-    //   a_1LC * x  +  b_1LC * y  = c_1LC.
-
-    vectAlGa[0] = gaNew[0] - alNew[0];
-    vectAlGa[1] = gaNew[1] - alNew[1];
-    a_1LC  =  vectAlGa[1];
-    b_1LC  = -vectAlGa[0];
-    c_1LC  =  vectAlGa[1] * alNew[0]  -  vectAlGa[0] * alNew[1];
-
-    //   3.b Let's compute coefficients of second line betweeen "beNew" and "thNew" points.
-    //   a_2LC * x  +  b_2LC * y  = c_2LC.
-
-    vectBeTh[0] = thNew[0] - beNew[0];
-    vectBeTh[1] = thNew[1] - beNew[1];
-    a_2LC  =  vectBeTh[1];
-    b_2LC  = -vectBeTh[0];
-    c_2LC  =  vectBeTh[1] * beNew[0]  -  vectBeTh[0] * beNew[1];
-
-    //   4. Let's compute coordinates of across point of this two lines.
-    //   Are lines parallel?
-
-    if( fabs(b_1LC*a_2LC - b_2LC*a_1LC)  <  1.e-14 ) {
-        //   Not checked.
-
-        qAngType = 0.;
-
-        //   Pseudo case. Anyway I need to compute some values.
-
-        //   First triangle.
-
-        firstT.first[0] = alNew[0];
-        firstT.first[1] = alNew[1];
-        firstT.second[0] = beNew[0];
-        firstT.second[1] = beNew[1];
-        firstT.third[0] = gaNew[0];
-        firstT.third[1] = gaNew[1];
-
-
-        //   Vertices of second triagle depends on scalar production.
-
-        vectAlGa[0] = gaNew[0] - alNew[0];
-        vectAlGa[1] = gaNew[1] - alNew[1];
-        vectBeTh[0] = thNew[0] - beNew[0];
-        vectBeTh[1] = thNew[1] - beNew[1];
-
-
-        scalProd = vectAlGa[0] * vectBeTh[0]  +  vectAlGa[1] * vectBeTh[1];
-        secondT.first[0]  = beNew[0];
-        secondT.first[1]  = beNew[1];
-        secondT.second[0] = thNew[0];
-        secondT.second[1] = thNew[1];
-
-
-        if( scalProd >= 0. ) {
-            secondT.third[0] = gaNew[0];
-            secondT.third[1] = gaNew[1];
-        }
-
-        if( scalProd < 0. ) {
-            secondT.third[0] = alNew[0];
-            secondT.third[1] = alNew[1];
-        }
-
-        return qAngType;
-    }
-
-
-    AcrP[0]  =  ( b_1LC*c_2LC - b_2LC*c_1LC ) / ( b_1LC*a_2LC - b_2LC*a_1LC );
-    AcrP[1]  =  ( a_1LC*c_2LC - a_2LC*c_1LC ) / (-b_1LC*a_2LC + b_2LC*a_1LC );
-
-    if (  (  (beNew[1] - AcrP[1])*(thNew[1] - AcrP[1])  )  >  0.  ) {
-
-        if(  (  (alNew[0] - AcrP[0])*(gaNew[0] - AcrP[0])  )  >  0.  ) {
-            qAngType = 0;
-            firstT.first[0] = alNew[0];
-            firstT.first[1] = alNew[1];
-            firstT.second[0] = beNew[0];
-            firstT.second[1] = beNew[1];
-            firstT.third[0] = gaNew[0];
-            firstT.third[1] = gaNew[1];
-
-            //   Second triangle.
-
-            secondT.first[0]   = beNew[0];
-            secondT.first[1]   = beNew[1];
-            secondT.second[0]  = thNew[0];
-            secondT.second[1]  = thNew[1];
-
-
-            //   Third vertex computing...
-
-            vectAlGa[0] = gaNew[0] - alNew[0];
-            vectAlGa[1] = gaNew[1] - alNew[1];
-
-            vectBeTh[0] = thNew[0] - beNew[0];
-            vectBeTh[1] = thNew[1] - beNew[1];
-
-            scalProd = vectAlGa[0] * vectBeTh[0]  +  vectAlGa[1] * vectBeTh[1];
-
-            if( scalProd >= 0. ) {
-                secondT.third[0] = gaNew[0];
-                secondT.third[1] = gaNew[1];
-            }
-
-            if( scalProd < 0. ) {
-                secondT.third[0] = alNew[0];
-                secondT.third[1] = alNew[1];
-            }
-
-            return qAngType;
-
-        }   //   "if(  (  (alNew[0] - AcrP[0])*(gaNew[0] - AcsP[0])  )  >  0.  )".
-
-
-        //   Second criterion. Second case.
-
-        if(  (  (alNew[0] - AcrP[0])*(gaNew[0] - AcrP[0])  )  <=  0.  ) {
-            vectAlBe[0] = beNew[0] - alNew[0];
-            vectAlBe[1] = beNew[1] - alNew[1];
-            vectAlTh[0] = thNew[0] - alNew[0];
-            vectAlTh[1] = thNew[1] - alNew[1];
-
-            vectProdOz = vectAlBe[0] * vectAlTh[1]  -  vectAlBe[1] * vectAlTh[0];
-
-            if( vectProdOz < 0. ) {
-                //   The vertex "beNew" is NOT in triangle "alNew - gaNew - thNew".
-
-                qAngType = 0;
-
-                //   Pseudo case. Anyway I need to find some solution. So
-
-                firstT.first[0] = alNew[0];
-                firstT.first[1] = alNew[1];
-                firstT.second[0] = beNew[0];
-                firstT.second[1] = beNew[1];
-                firstT.third[0] = thNew[0];
-                firstT.third[1] = thNew[1];
-
-                //   Second triangle.
-
-                secondT.first[0]  = beNew[0];
-                secondT.first[1]  = beNew[1];
-                secondT.second[0] = thNew[0];
-                secondT.second[1] = thNew[1];
-                secondT.third[0] = gaNew[0];
-                secondT.third[1] = gaNew[1];
-
-                return qAngType;
-            }
-
-            if( vectProdOz >= 0. ) {
-                //  It's all write. We have a good concave quadrangle.
-
-                //   Now let's compute all vertices which I need.
-
-                qAngType = 2;
-
-                //   First triangle.
-
-                firstT.first[0] = alNew[0];
-                firstT.first[1] = alNew[1];
-                firstT.second[0] = beNew[0];
-                firstT.second[1] = beNew[1];
-                firstT.third[0] = thNew[0];
-                firstT.third[1] = thNew[1];
-
-                //   Second triangle.
-
-                secondT.first[0]  = beNew[0];
-                secondT.first[1]  = beNew[1];
-                secondT.second[0] = thNew[0];
-                secondT.second[1] = thNew[1];
-                secondT.third[0]  = gaNew[0];
-                secondT.third[1]  = gaNew[1];
-
-                return qAngType;
-            }
-
-        }   //   "if(  (  (alNew[0] - AcsP[0])*(gaNew[0] - AcsP[0])  )  <=  0.  )".   //   Last second case of second criterion.
-
-    }   //   end of "if (  (  (beNew[1] - AcrP[1])*(thNew[1] - AcrP[1])  )  >  0.  )"
-
-    //  Now let's consider SECOND case 5.b "(  (beNew[1] - AcrP[1])*(thNew[1] - AcrP[1])  )  <= 0."
-
-    if (  (  (beNew[1] - AcrP[1])*(thNew[1] - AcrP[1])  )  <= 0.  ) {
-        if(  (  (alNew[0] - AcrP[0])*(gaNew[0] - AcrP[0])  )  >  0.  ) {
-            //  It means the across point IS NOT between "alNew" and "gaNew" vertices by Ox-axis?
-
-            //   O.K. the quadrangle IS NOT CONVEX. Is it concave or pseudo? Third criterion.
-
-            vectBeGa[0]  =  gaNew[0] - beNew[0];
-            vectBeGa[1]  =  gaNew[1] - beNew[1];
-            vectBeAl[0]  =  alNew[0] - beNew[0];
-            vectBeAl[1]  =  alNew[1] - beNew[1];
-
-            vectProdOz  =  vectBeGa[0] * vectBeAl[1]  -  vectBeGa[1] * vectBeAl[0];
-
-            if( vectProdOz >= 0. ) {
-                qAngType = 2;
-
-                //   The quadrangle is concave. First triangle.
-
-                firstT.first[0] = alNew[0];
-                firstT.first[1] = alNew[1];
-                firstT.second[0]= beNew[0];
-                firstT.second[1]= beNew[1];
-                firstT.third[0] = gaNew[0];
-                firstT.third[1] = gaNew[1];
-
-                //   Second triangle.
-
-                secondT.first[0] = alNew[0];
-                secondT.first[1] = alNew[1];
-                secondT.second[0]= thNew[0];
-                secondT.second[1]= thNew[1];
-                secondT.third[0] = gaNew[0];
-                secondT.third[1] = gaNew[1];
-
-                return qAngType;
-            }
-
-            if( vectProdOz < 0. ) {
-                qAngType = 0;
-
-                //   This concave quadrangle do has NO write anticlockwise vertices sequence order. It's pseudo.
-
-                firstT.first[0]  = alNew[0];
-                firstT.first[1]  = alNew[1];
-                firstT.second[0] = beNew[0];
-                firstT.second[1] = beNew[1];
-                firstT.third[0]  = gaNew[0];
-                firstT.third[1]  = gaNew[1];
-
-                //   Second triangle.
-
-                secondT.first[0]  = alNew[0];
-                secondT.first[1]  = alNew[1];
-                secondT.second[0] = thNew[0];
-                secondT.second[1] = thNew[1];
-                secondT.third[0]  = gaNew[0];
-                secondT.third[1]  = gaNew[1];
-
-                return qAngType;
-            }
-        }   //   end of "if(  (  (alNew[0] - AcrP[0])*(gaNew[0] - AcsP[0])  )  >  0.  )". First case of second criterion.
-
-
-        //   Second criterion. Second case.
-
-        if(  (  (alNew[0] - AcrP[0])*(gaNew[0] - AcrP[0])  )  <=  0.  ) {
-            //   O.K. the quadrangle is convex. Is it has the same vertices sequence order.
-
-            vectAlBe[0]  =  beNew[0] - alNew[0];
-
-            vectAlBe[1]  =  beNew[1] - alNew[1];
-
-            vectAlTh[0]  =  thNew[0] - alNew[0];
-
-            vectAlTh[1]  =  thNew[1] - alNew[1];
-
-            vectProdOz  =  vectAlBe[0] * vectAlTh[1]  -  vectAlBe[1] * vectAlTh[0];
-
-            if( vectProdOz >= 0. ) {
-                qAngType = 1;
-
-                //   Convex quadrangle DO HAS WRITE anticlockwise vertices sequence order. It's convex.
-
-                firstT.first[0]  = alNew[0];
-                firstT.first[1]  = alNew[1];
-                firstT.second[0] = beNew[0];
-                firstT.second[1] = beNew[1];
-                firstT.third[0]  = gaNew[0];
-                firstT.third[1]  = gaNew[1];
-
-                //   Second triangle.
-
-                secondT.first[0]  = alNew[0];
-                secondT.first[1]  = alNew[1];
-                secondT.second[0] = thNew[0];
-                secondT.second[1] = thNew[1];
-                secondT.third[0]  = gaNew[0];
-                secondT.third[1]  = gaNew[1];
-
-                return qAngType;
-            }
-
-            if( vectProdOz < 0. )	{
-                qAngType = 0;
-                firstT.first[0]  = alNew[0];
-                firstT.first[1]  = alNew[1];
-                firstT.second[0] = beNew[0];
-                firstT.second[1] = beNew[1];
-                firstT.third[0]  = gaNew[0];
-                firstT.third[1]  = gaNew[1];
-                secondT.first[0]  = alNew[0];
-                secondT.first[1]  = alNew[1];
-                secondT.second[0] = thNew[0];
-                secondT.second[1] = thNew[1];
-                secondT.third[0]  = gaNew[0];
-                secondT.third[1]  = gaNew[1];
-                return qAngType;
-            }
-        }
-    }
-    return qAngType;
+	*first_x1 = alNew[0];
+	*first_y1 = alNew[1];
+	*second_x1 = beNew[0];
+	*second_y1 = beNew[1];
+	*third_x1 = gaNew[0];
+	*third_y1 = gaNew[1];
+	
+	*first_x2 = alNew[0];
+	*first_y2 = alNew[1];
+	*second_x2 = thNew[0];
+	*second_y2 = thNew[1];
+	*third_x2 = gaNew[0];
+	*third_y2 = gaNew[1];
+    
 }
 
 double d_normOfMatrAtL1_asV(
@@ -2378,208 +2072,59 @@ double d_normOfMatrAtL1_asV(
     return hx * hy * norm;
 }
 
-__global__ void kernel(ComputeParameters p, double *rhoInPrevTL_asV, double* result, int length, int x_length, int part_number, int chunk,
-					   Triangle* first, Triangle* second)
+__global__ void kernel(ComputeParameters p, double *rhoInPrevTL_asV, double* result, int length, int x_length, int part_number, int chunk)
 {
-	const int offset = hemiGetElementOffset();
-	const int stride = hemiGetElementStride();
-
-	for (int opt = offset; opt < length; opt += stride) {
-		p.i = (opt % x_length + 1) ;
-		p.j = (opt / x_length + 1) + (int) (part_number*chunk / x_length);
-#ifdef PRINT_VALUES
-		printf("p.i = %d p.j = %d \n", p.i, p.j);
-#endif
-		 double buf_D = d_integUnderUnunifTr(
-                       p.a, p.b,
-                       //
-                       p.lb, p.rb,
-                       //
-                       p.bb, p.ub,
-                       //
-                       p.tau, p.currentTimeLevel,
-                       //
-					   first[opt].first, first[opt].second, first[opt].third,
-                       //
-                       p.x, p.x_size,
-                       //
-                       p.y, p.y_size,
-                       rhoInPrevTL_asV,
-                       p.i, p.j);
-
-
-     buf_D += d_integUnderUnunifTr(
-               p.a, p.b,                           //   -  Analitycal solution parameters.
-               //
-               p.lb, p.rb,                           //   -  Left and right boundaries of rectangular domain.
-               //
-               p.bb, p.ub,                           //   -  Botton and upper boundaries of rectangular domain.
-               //
-               p.tau, p.currentTimeLevel,                           //   -  Index of current time layer.
-               //
-			   second[opt].first, second[opt].second, second[opt].third,           //   -  Vertices of first triangle.
-               //
-               p.x, p.x_size,                       //   -  Number of OX steps.
-               //
-               p.y, p.y_size,                       //   -  Number of OY steps.
-               //
-               rhoInPrevTL_asV,
-               p.i, p.j );
-	 result[opt] = buf_D;
-	}
+//	const int offset = hemiGetElementOffset();
+//	const int stride = hemiGetElementStride();
+//
+//	for (int opt = offset; opt < length; opt += stride) {
+//		p.i = (opt % x_length + 1) ;
+//		p.j = (opt / x_length + 1) + (int) (part_number*chunk / x_length);
+//#ifdef PRINT_VALUES
+//		printf("p.i = %d p.j = %d \n", p.i, p.j);
+//#endif
+//		 double buf_D = d_integUnderUnunifTr(
+//                       p.a, p.b,
+//                       //
+//                       p.lb, p.rb,
+//                       //
+//                       p.bb, p.ub,
+//                       //
+//                       p.tau, p.currentTimeLevel,
+//                       //
+//					   first[opt].first, first[opt].second, first[opt].third,
+//                       //
+//                       p.x, p.x_size,
+//                       //
+//                       p.y, p.y_size,
+//                       rhoInPrevTL_asV,
+//                       p.i, p.j);
+//
+//
+//     buf_D += d_integUnderUnunifTr(
+//               p.a, p.b,                           //   -  Analitycal solution parameters.
+//               //
+//               p.lb, p.rb,                           //   -  Left and right boundaries of rectangular domain.
+//               //
+//               p.bb, p.ub,                           //   -  Botton and upper boundaries of rectangular domain.
+//               //
+//               p.tau, p.currentTimeLevel,                           //   -  Index of current time layer.
+//               //
+//			   second[opt].first, second[opt].second, second[opt].third,           //   -  Vertices of first triangle.
+//               //
+//               p.x, p.x_size,                       //   -  Number of OX steps.
+//               //
+//               p.y, p.y_size,                       //   -  Number of OY steps.
+//               //
+//               rhoInPrevTL_asV,
+//               p.i, p.j );
+//	 result[opt] = buf_D;
+	//}
 }
 
 //#define PRINT_VALUES
 
 
-// предполагается, что chunk = x_size - 2
-double* GetIntegrGpuResult(ComputeParameters p,  TriangleResult triangles, double *rhoInPrevTL_asV, int gridSize, int blockSize, int chunk)
-{
-	chunk = chunk - 2;
-	int count = (p.x_size - 1) * (p.y_size - 1);
-
-	double* result = new double[count];
-
-
-	int d_xy_size;
-	int offset = 0;
-	int current_number = 0;
-	int copy_offset = 0;
-	double* d_x = NULL;
-	double* d_y = NULL;
-	int parts = 0;
-	int cp_start_index = 0;
-	int prev_level_data_size = -1;
-	int tr_size = -1;
-	double* x = p.x;
-	double* y = p.y;
-
-	double* d_rhoInPrevTL_asV = NULL; // chunk of data from previous level
-	Triangle* d_first_triangles = NULL;
-	Triangle* d_second_triangles = NULL;
-	double* d_result = NULL;
-
-#ifdef PRINT_VALUES
-	printf("x_size = %d, y_size = %d count = %d\n", p.x_size, p.y_size, count);
-#endif
-
-	parts = (int) (count % chunk == 0 ? count / chunk : count / chunk + 1);
-	//parts = 2;
-
-#ifdef PRINT_VALUES
-	printf("count %d\n", count);
-	printf("parts %d\n", parts);
-	printf("chunk = %d\n", chunk);
-	printf("===================\n");
-#endif
-	//parts = 3;
-	for (int i = 0; i < parts; ++i) {
-
-		offset = i * (chunk + 2);
-		current_number = std::min(chunk, (p.x_size + 1)*(p.y_size +1)  - offset);
-		copy_offset = offset - 2*i;
-
-#ifdef PRINT_VALUES
-		printf("current_number = %d\n", current_number);
-		printf("copy offset = %d\n", copy_offset);
-#endif
-		
-		cp_start_index = (i*chunk) % (p.x_size - 1);
-		// для корректны расчетов необходимо копировать строку матрицы сверху и
-		// и строку матрицы снизу + по 2 элемента справа и слева в основной строке
-		// Шаблон получается следующий
-		//  **** 
-		// ******
-		//  ****
-		// но для простоты мы будем копировать по следующему шаблону:
-		// ******
-		// ******
-		// ******
-		// Для успешного копирования, необходимо определить размер массива
-		// судя по шаблону он будет высчитяваться следующим образом:
-		prev_level_data_size = sizeof(double) * ((chunk + 2) * 3); //размер массива, чтобы поместились все элементыиз 3 строк
-
-		// Затем надо определить значение стартового индекса для массива
-		// он определяется следующим образом:
-		int prev_level_data_start_copy_index = (chunk + 2) * i; // получаем индекс первого элемента из шаблона выше
-
-		// а теперь копируем ланные с предыдущего слоя на карту
-
-		// для начала выделим память для хранения данных
-		checkCuda(cudaMalloc((void**) &d_rhoInPrevTL_asV, prev_level_data_size));
-
-		// затем скопируем данные с хоста на девайс, начав со стартового индекса
-		checkCuda(
-			cudaMemcpy(d_rhoInPrevTL_asV, &rhoInPrevTL_asV[prev_level_data_start_copy_index], prev_level_data_size,
-			cudaMemcpyHostToDevice));
-
-		// allocate GPU memory for CHUNK of triangles
-		tr_size = sizeof(Triangle) * current_number;
-		
-		checkCuda(cudaMalloc((void**) &(d_first_triangles), tr_size));
-		checkCuda(cudaMalloc((void**) &(d_second_triangles), tr_size));
-		checkCuda(
-			cudaMemcpy(d_first_triangles, &triangles.f[copy_offset], tr_size,
-			cudaMemcpyHostToDevice));
-		checkCuda(
-			cudaMemcpy(d_second_triangles, &triangles.s[copy_offset], tr_size,
-			cudaMemcpyHostToDevice));
-
-
-		d_xy_size = sizeof(double) * (chunk + 2);
-
-		checkCuda(cudaMalloc((void**) &d_x, d_xy_size));
-		checkCuda(cudaMalloc((void**) &d_y, d_xy_size));
-
-
-		checkCuda(
-			cudaMemcpy(d_x, &x[cp_start_index], d_xy_size,
-			cudaMemcpyHostToDevice));
-		checkCuda(
-			cudaMemcpy(d_y, &y[cp_start_index], d_xy_size,
-			cudaMemcpyHostToDevice));
-
-		checkCuda(cudaMalloc((void**) &d_result, prev_level_data_size));
-
-		
-		p.x = d_x;
-		p.y = d_y;
-
-		// start the kernel
-#ifdef PRINT_VALUES
-		printf("start kernel = %d with offset = %d \n", i, offset);
-#endif
-
-		//(ComputeParameters p, double *rhoInPrevTL_asV, int length, int x_length, int part_number, int chunk,
-					   //VertexData v_data)
-		kernel<<<gridSize, blockSize>>>(p, d_rhoInPrevTL_asV, d_result, current_number, p.x_size - 1, i, chunk, d_first_triangles, d_second_triangles);
-
-//copy arrays back on host
-		cudaMemcpy(&result[copy_offset], d_result, sizeof(double)*current_number,
-			cudaMemcpyDeviceToHost);
-
-#ifdef PRINT_VALUES
-		for (int i = 0; i < current_number; i++)
-		{
-			printf("result = %f\n", result[i + copy_offset]);
-		}
-#endif
-
-
-		// free memory
-		cudaFree(d_x);
-		cudaFree(d_y);
-		cudaFree(d_first_triangles);
-		cudaFree(d_second_triangles);
-		cudaFree(d_rhoInPrevTL_asV);
-		cudaFree(d_result);
-		cudaDeviceReset();
-	}
-	
-	p.x = x;
-	p.y = y;
-	return result;
-}
 
 double d_spaceVolumeInPrevTL(ComputeParameters p, double *rhoInPrevTL_asV )
 {
