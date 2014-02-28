@@ -114,6 +114,7 @@ float get_quad_coord(TriangleResult* result, ComputeParameters* p)
 	// Вариант 1) На 1 карте считать first1, second1, third1, а на второй считать first2, second2, third2
 	// Вариант 2) На 1 карте считать first1, на второй second1 и т. д.
 	get_square_coord << <gridSize, blockSize >> >(first1, second1, third1, first2, second2, third2);
+	cudaDeviceSynchronize();
 
 	cudaEventRecord(stop, 0);
 	cudaEventSynchronize(stop);
