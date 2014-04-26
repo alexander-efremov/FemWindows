@@ -23,52 +23,52 @@ inline void initCompOfGlVar()
 	int j;
 
 	//   Massive of OX steps. Dimension = C_numOfOXSt +1.
-	masOX = new double[ C_numOfOXSt +1];
-	for( j=0; j< C_numOfOXSt +1; j++ )
+	masOX = new double[C_numOfOXSt + 1];
+	for (j = 0; j< C_numOfOXSt + 1; j++)
 	{
 		//   Regular grid for simplification.
-		masOX[j] = C_lbDom + (C_rbDom - C_lbDom) * ( (double)j / C_numOfOXSt );
+		masOX[j] = C_lbDom + (C_rbDom - C_lbDom) * ((double) j / C_numOfOXSt);
 	}
 
 	//   Let's find out maximum of OX step.
-	for( j=0; j< C_numOfOXSt; j++ )
+	for (j = 0; j< C_numOfOXSt; j++)
 	{
-		if( maxOfGrSt < (masOX[j+1] - masOX[j]) )
+		if (maxOfGrSt < (masOX[j + 1] - masOX[j]))
 		{
-			maxOfGrSt = (masOX[j+1] - masOX[j]);
+			maxOfGrSt = (masOX[j + 1] - masOX[j]);
 		}
 	}
 
 	//   Massive of OY steps. Dimension = C_numOfOYSt +1.
-	masOY = new double[ C_numOfOYSt +1];
-	for( j=0; j< C_numOfOYSt +1; j++ )
+	masOY = new double[C_numOfOYSt + 1];
+	for (j = 0; j< C_numOfOYSt + 1; j++)
 	{
 		//   Regular grid for simplification.
-		masOY[j] = C_bbDom + (C_ubDom - C_bbDom) * ( (double)j / C_numOfOYSt );
+		masOY[j] = C_bbDom + (C_ubDom - C_bbDom) * ((double) j / C_numOfOYSt);
 	}
 
 	//   Let's find out maximum of OY step.
-	for( j=0; j< C_numOfOYSt; j++ )
+	for (j = 0; j< C_numOfOYSt; j++)
 	{
-		if( maxOfGrSt < (masOY[j+1] - masOY[j]) )
+		if (maxOfGrSt < (masOY[j + 1] - masOY[j]))
 		{
-			maxOfGrSt = (masOY[j+1] - masOY[j]);
+			maxOfGrSt = (masOY[j + 1] - masOY[j]);
 		}
 	}
 
 	C_tau = C_StepsRel * maxOfGrSt;
 
-	C_numOfTSt = (int)( C_timeEnd / C_tau );
+	C_numOfTSt = (int) (C_timeEnd / C_tau);
 
 
-	if( fabs(C_numOfTSt*C_tau - C_timeEnd) < (C_tau* 1.e-7) )
+	if (fabs(C_numOfTSt*C_tau - C_timeEnd) < (C_tau* 1.e-7))
 	{
 		//   O.K. This error is error of computer arithmetic.
 
 		return;
 	}
 
-	if ( fabs(C_numOfTSt*C_tau - C_timeEnd) >= (C_tau* 1.e-7) )
+	if (fabs(C_numOfTSt*C_tau - C_timeEnd) >= (C_tau* 1.e-7))
 	{
 		//   We need to change number of time steps and time step.
 
@@ -98,10 +98,6 @@ struct ComputeParameters
 private:
 	int time_i;
 	bool _initresult;
-
-	
-
-
 public:
 	double a;
 	double b;
@@ -125,6 +121,7 @@ public:
 	ComputeParameters(int level, bool initresult) : currentTimeLevel(1), t_count(0)
 	{
 		_initresult = initresult;
+
 		a = C_par_a;
 		b = C_par_b;
 		lb = C_lbDom;
@@ -158,8 +155,11 @@ public:
 
 		y_size = m;
 		size = (n + 1) * (m + 1);
+		result = NULL;
 		if (initresult)
+		{
 			result = new double[size];
+		}
 	}
 
 	~ComputeParameters()
@@ -260,6 +260,11 @@ public:
 		return (get_real_x_size() - 2) * (get_real_y_size() - 2);
 	}
 
+	int get_real_matrix_size()
+	{
+		return (get_real_x_size()) * (get_real_y_size());
+	}
+
 	// получает размер внутренней матрицы
 	int get_inner_x_size()
 	{
@@ -271,7 +276,7 @@ public:
 	{
 		int chunk_size = get_inner_chuck_size();
 		int inner_matrix_size = get_inner_matrix_size();
-		return (int) ( inner_matrix_size % chunk_size == 0 ? inner_matrix_size / chunk_size : inner_matrix_size / chunk_size + 1);
+		return (int) (inner_matrix_size % chunk_size == 0 ? inner_matrix_size / chunk_size : inner_matrix_size / chunk_size + 1);
 	}
 
 	void print_info()
@@ -280,8 +285,8 @@ public:
 	}
 
 
-	friend std::ostream &operator<<( std::ostream &output,
-	                                 const ComputeParameters &tr )
+	friend std::ostream &operator<<(std::ostream &output,
+		const ComputeParameters &tr)
 	{
 		output << "a = " << tr.a << std::endl;
 		output << "b = " << tr.b << std::endl;
@@ -339,12 +344,12 @@ private:
 
 public:
 
-	double* first1; 
+	double* first1;
 	double* second1;
 	double* third1;
 
 	double* first2;
-	double* second2; 
+	double* second2;
 	double* third2;
 	int length;
 	int x_length;
@@ -354,26 +359,26 @@ public:
 
 	TriangleResult(ComputeParameters* param)
 	{
-		currentTimeLevel =param->currentTimeLevel;
+		currentTimeLevel = param->currentTimeLevel;
 		x_length = param->x_size - 1;
 		y_length = param->y_size - 1;
 		chunk = param->get_inner_chuck_size();
-		first1 = new double[ 2*param->get_inner_matrix_size()];
-		first2 = new double[ 2*param->get_inner_matrix_size()];
-		second1 = new double[2*param->get_inner_matrix_size()];
-		second2 = new double[2*param->get_inner_matrix_size()];
-		third1 = new double[ 2*param->get_inner_matrix_size()];
-		third2 = new double[ 2*param->get_inner_matrix_size()];
+		first1 = new double[2 * param->get_inner_matrix_size()];
+		first2 = new double[2 * param->get_inner_matrix_size()];
+		second1 = new double[2 * param->get_inner_matrix_size()];
+		second2 = new double[2 * param->get_inner_matrix_size()];
+		third1 = new double[2 * param->get_inner_matrix_size()];
+		third2 = new double[2 * param->get_inner_matrix_size()];
 	}
 
 	~TriangleResult()
 	{
-		delete[] first1 ;
-		delete[] first2 ;
+		delete[] first1;
+		delete[] first2;
 		delete[] second1;
 		delete[] second2;
-		delete[] third1 ;
-		delete[] third2 ;
+		delete[] third1;
+		delete[] third2;
 	}
 
 	void setOffset(int part_index)
@@ -441,7 +446,7 @@ void write_info(double, double, double, const int, const int, double);
 void write_openmp_stress_test_info(std::string &filename, int threadNumber, int n, int m, int tl_number, double time_ms, int ht_on, bool append);
 
 
-extern double h_analytSolut(double t, double x, double y );
+extern double h_analytSolut(double t, double x, double y);
 extern float get_quad_coord(TriangleResult* result, ComputeParameters* p);
 extern double h_f_function(ComputeParameters p, const int currentTimeLevel, const int i, const int j);
 extern double h_f_function(ComputeParameters* p, const int currentTimeLevel, const int i, const int j);
@@ -451,7 +456,7 @@ extern double h_rightBound(ComputeParameters* p);
 
 
 extern double u_function(double par_b, double t, double x, double y);
-extern double v_function(double lbDom, double rbDom, double bbDom, double ubDom, double t, double x, double y );
+extern double v_function(double lbDom, double rbDom, double bbDom, double ubDom, double t, double x, double y);
 
 extern double h_leftBound(ComputeParameters& p);
 extern double h_leftBound(ComputeParameters* p);
@@ -468,7 +473,7 @@ extern float solve_cuda_params(ComputeParameters p);
 
 extern double d_solByEqualVolumes(ComputeParameters p);
 
-extern void h_quadrAngleType(ComputeParameters* p, double* first_x1, double* second_x1, double* third_x1, double* first_x2, double* 
+extern void h_quadrAngleType(ComputeParameters* p, double* first_x1, double* second_x1, double* third_x1, double* first_x2, double*
 	second_x2, double* third_x2,
 	double* first_y1, double* second_y1, double* third_y1, double* first_y2, double* second_y2, double* third_y2);
 
@@ -498,7 +503,7 @@ extern double d_integUnderUnunifTr(
 	int numOfOYSt, //   -  Number of OY steps.
 	//
 	double * rhoInPrevTL_asV,
-	int ii, int jj );
+	int ii, int jj);
 
 extern double integUnderUnunifTr(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -524,7 +529,7 @@ extern double integUnderUnunifTr(
 	int numOfOYSt, //   -  Number of OY steps.
 	//
 	double * rhoInPrevTL_asV,
-	int ii, int jj ); //!!!!!!!!!!!!!!!!!!!
+	int ii, int jj); //!!!!!!!!!!!!!!!!!!!
 
 double* GetIntegrGpuResult(ComputeParameters p, TriangleResult triangles, double *rhoInPrevTL_asV, int gridSize, int blockSize, int chunk);
 
@@ -550,7 +555,7 @@ extern double solByEqualVolumes(
 	//
 	int numOfSolOrd, //   -  For print only. Solution order which we want to get.
 	//
-	double *rhoInCurrTL_asV ); //   -  Rho (solution) in Last Time Level which we will compute.
+	double *rhoInCurrTL_asV); //   -  Rho (solution) in Last Time Level which we will compute.
 
 extern double* solve_cpu_test(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -571,7 +576,7 @@ extern double* solve_cpu_test(
 	double * masOY, //   -  Massive of OY nodes. Dimension = numOfOYSt +1.
 	int numOfOYSt, //   -  Number of OY steps.
 	int gridStep
-);
+	);
 
 extern double spaceVolumeInPrevTL(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -594,7 +599,7 @@ extern double spaceVolumeInPrevTL(
 	const double * masOY, //   -  Massive of OY steps. Dimension = numOfOYSt +1.
 	int numOfOYSt, //   -  Number of OY steps.	
 
-	double * rhoInPrevTL_asV );
+	double * rhoInPrevTL_asV);
 
 extern double f_function( //   -  It's item of right part of differential equation.
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -615,7 +620,7 @@ extern double f_function( //   -  It's item of right part of differential equati
 	//
 	int iOfOYN, //   -  Index of current OY node.
 	const double *masOY, //   -  Massive of OY steps. Dimension = numOfOYSt +1.
-	int numOfOYSt ); //   -  Number of OY steps (segments).
+	int numOfOYSt); //   -  Number of OY steps (segments).
 
 extern double rightBound(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -627,7 +632,7 @@ extern double rightBound(
 	double ubDom,
 	//
 	double t,
-	double y );
+	double y);
 
 extern double bottonBound(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -639,7 +644,7 @@ extern double bottonBound(
 	double ubDom,
 	//
 	double t,
-	double x );
+	double x);
 
 extern double upperBound(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -651,7 +656,7 @@ extern double upperBound(
 	double ubDom,
 	//
 	double t,
-	double x );
+	double x);
 
 extern double leftBound(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -663,7 +668,7 @@ extern double leftBound(
 	double ubDom,
 	//
 	double t,
-	double y );
+	double y);
 
 extern double integUnderUnunifTr(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -688,7 +693,7 @@ extern double integUnderUnunifTr(
 	const double * masOY, //   -  Massive of OY steps. Dimension = numOfOYSt +1.
 	int numOfOYSt, //   -  Number of OY steps.
 	//
-	double * rhoInPrevTL );
+	double * rhoInPrevTL);
 
 extern int quadrAngleType(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -717,7 +722,7 @@ extern int quadrAngleType(
 	//
 	double * firVsecT, //   -  First vertex of second triangle.
 	double * secVsecT, //   -  Second vertex of second triangle.
-	double * thiVsecT ); //   -  Third vertex of second triangle.
+	double * thiVsecT); //   -  Third vertex of second triangle.
 
 extern double integUnderUnunifTr(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -742,18 +747,18 @@ extern double integUnderUnunifTr(
 	const double * masOY, //   -  Massive of OY steps. Dimension = numOfOYSt +1.
 	int numOfOYSt, //   -  Number of OY steps.
 	//
-	double * rhoInPrevTL );
+	double * rhoInPrevTL);
 
 extern
-	double itemOfInteg_2SpecType_optimized(
-		double Py,
-		double Qy,
-		//
-		double alpha,
-		//
-		double a,
-		double b,
-		double betta );
+double itemOfInteg_2SpecType_optimized(
+double Py,
+double Qy,
+//
+double alpha,
+//
+double a,
+double b,
+double betta);
 
 extern double analytSolut(
 	double par_a,
@@ -764,8 +769,8 @@ extern double analytSolut(
 	double bbDom, //   -  bottom and upper boundaries of rectangular domain.
 	double ubDom,
 	//
-	double t, double x, double y );
-
+	double t, double x, double y);
+extern float solve_at_gpu(ComputeParameters* p);
 
 extern void cuda_solve(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -789,7 +794,7 @@ extern void cuda_solve(
 	bool isTimeStShBeChan, //   -  Is time step should be change?
 	bool isGridStShBeChan, //   -  Is grid step should be change?
 	//
-	int numOfGrStepLayer ); //   -  How many computations with different grid steps we want to make.
+	int numOfGrStepLayer); //   -  How many computations with different grid steps we want to make.
 
 extern double initDataOfSol(
 	double par_a, //   -  Item of left and right setback (parameter "a" in test).
@@ -804,7 +809,7 @@ extern double initDataOfSol(
 	const double *masOX, //   -  Massive of abscissa grid steps. Dimension = numOfOxSt +1.
 	//
 	int iOfOYN, //   -  Index of current OY node.
-	const double *masOY ); //   -  Massive of ordinate grid steps. Dimension = numOfOySt +1.
+	const double *masOY); //   -  Massive of ordinate grid steps. Dimension = numOfOySt +1.
 
 extern double normOfMatrAtL1_asV(
 	const double *masOX, //   -  Massive of OX grid nodes. Dimension = dimOX.
@@ -813,8 +818,8 @@ extern double normOfMatrAtL1_asV(
 	const double *masOY, //   -  Massive of OY grid nodes. Dimension = dimOY.
 	int dimOY,
 	//
-	double * mat_asV );
+	double * mat_asV);
 
 extern double u_function(double par_b, double t, double x, double y);
-extern double v_function(double lbDom, double rbDom, double bbDom, double ubDom, double t, double x, double y );
+extern double v_function(double lbDom, double rbDom, double bbDom, double ubDom, double t, double x, double y);
 #endif

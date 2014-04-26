@@ -18,6 +18,9 @@
     <ClInclude Include="headers\hemi.h">
       <Filter>headers</Filter>
     </ClInclude>
+    <ClInclude Include="headers\cuda_constant.cuh">
+      <Filter>headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="get_quad_coord.cu">

@@ -1,5 +1,6 @@
 enum ModelDataType
-{ Model11,
+{
+	Model11,
 	Model21,
 	Model41,
 	Model81,
@@ -12,6 +13,7 @@ enum ModelDataType
 class ModelDataProvider
 {
 public:
-
 	double* GetModelData(enum ModelDataType type);
+	double* GetModelData(int type);
+	double* GetModelData1tl(int type);
 };

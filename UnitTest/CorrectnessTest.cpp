@@ -9,10 +9,12 @@
 #endif
 #define FULL_TEST false
 
+
 class TestBase : public testing::Test
 {
 protected:
 	double _accuracy;
+
 
 
 	ModelDataProvider _modelDataProvider;
@@ -49,17 +51,56 @@ protected:
 	{
 		return C_numOfOXSt * C_numOfOYSt;
 	}
+
+	void print_matrix(int n, int m, double* a, int precision = 8)
+	{
+		for (int i = 0; i < n; ++i)
+		{
+			for (int j = 0; j < m; ++j)
+			{
+				int k = i*n + j;
+				switch (precision)
+				{
+				case 1:
+					printf("%.1f ", a[k]);
+					break;
+				case 2:
+					printf("%.2f ", a[k]);
+					break;
+				case 3:
+					printf("%.3f ", a[k]);
+					break;
+				case 4:
+					printf("%.4f ", a[k]);
+					break;
+				case 5:
+					printf("%.5f ", a[k]);
+					break;
+				case 6:
+					printf("%.6f ", a[k]);
+					break;
+				case 7:
+					printf("%.7f ", a[k]);
+					break;
+				case 8:
+					printf("%.8f ", a[k]);
+					break;
+				}
+			}
+			printf("\n");
+		}
+	}
 };
 
-class CpuTest : public TestBase
+class cputest : public TestBase
 {
 protected:
 
-	CpuTest()
+	cputest()
 	{
 	}
 
-	virtual ~CpuTest()
+	virtual ~cputest()
 	{
 	}
 
@@ -71,7 +112,7 @@ protected:
 	}
 };
 
-TEST_F(CpuTest, CpuTestModel11)
+TEST_F(cputest, CpuTestModel11)
 {
 	double* data = _modelDataProvider.GetModelData(Model11);
 	double* result = GetCpuToLevel(0);
@@ -83,7 +124,7 @@ TEST_F(CpuTest, CpuTestModel11)
 	}
 }
 
-TEST_F(CpuTest, CpuTestModel21)
+TEST_F(cputest, CpuTestModel21)
 {
 	double* data = _modelDataProvider.GetModelData(Model21);
 	double* result = GetCpuToLevel(1);
@@ -94,7 +135,7 @@ TEST_F(CpuTest, CpuTestModel21)
 	}
 }
 
-TEST_F(CpuTest, CpuTestModel41)
+TEST_F(cputest, CpuTestModel41)
 {
 	if (FULL_TEST)
 	{
@@ -108,7 +149,7 @@ TEST_F(CpuTest, CpuTestModel41)
 	}
 }
 
-TEST_F(CpuTest, CpuTestModel81)
+TEST_F(cputest, CpuTestModel81)
 {
 	if (FULL_TEST)
 	{
@@ -122,7 +163,7 @@ TEST_F(CpuTest, CpuTestModel81)
 	}
 }
 
-TEST_F(CpuTest, CpuTestModel161)
+TEST_F(cputest, CpuTestModel161)
 {
 	if (FULL_TEST)
 	{
@@ -136,7 +177,7 @@ TEST_F(CpuTest, CpuTestModel161)
 	}
 }
 
-TEST_F(CpuTest, CpuTestModel321)
+TEST_F(cputest, CpuTestModel321)
 {
 	if (FULL_TEST)
 	{
@@ -150,7 +191,7 @@ TEST_F(CpuTest, CpuTestModel321)
 	}
 }
 
-TEST_F(CpuTest, CpuTestModel641)
+TEST_F(cputest, CpuTestModel641)
 {
 	if (FULL_TEST)
 	{
@@ -164,7 +205,7 @@ TEST_F(CpuTest, CpuTestModel641)
 	}
 }
 
-TEST_F(CpuTest, CpuTestModel1281)
+TEST_F(cputest, CpuTestModel1281)
 {
 	if (FULL_TEST)
 	{
@@ -178,25 +219,33 @@ TEST_F(CpuTest, CpuTestModel1281)
 	}
 }
 
-class GpuTest : public TestBase
+class gputest : public TestBase
 {
 protected:
 
+	ModelDataProvider _modelDataProvider;
+	gputest()
+	{
+		_modelDataProvider = ModelDataProvider();
+	}
 
-	GpuTest()
+	virtual ~gputest()
 	{
 	}
 
-	virtual ~GpuTest()
+	double* GetCpuToLevel(int level)
 	{
+		return solve_cpu_test(C_par_a, C_par_b, C_lbDom, C_rbDom, C_bbDom,
+			C_ubDom, C_tau, C_numOfTSt, masOX, C_numOfOXSt, masOY,
+			C_numOfOYSt, level);
 	}
 };
 
 
 
-TEST_F(GpuTest, get_quad_coord)
+TEST_F(gputest, get_quad_coord)
 {
-	const int finishLevel = 6;
+	const int finishLevel = 1;
 	const int startLevel = 0;
 	const double error = 1.0e-15;
 
@@ -206,9 +255,10 @@ TEST_F(GpuTest, get_quad_coord)
 		ComputeParameters* p = new ComputeParameters(level, false);
 		p->currentTimeLevel = 1;
 		TriangleResult* gpu = new TriangleResult(p);
-		get_quad_coord(gpu, p);
-		double first_x1(0), second_x1(0), third_x1(0), first_x2(0), second_x2(0), third_x2(0);
-		double first_y1(0), second_y1(0), third_y1(0), first_y2(0), second_y2(0), third_y2(0);
+		float t = get_quad_coord(gpu, p);
+		printf("gpu time elapsed = %f\n", t);
+		double firVfirT[2], secVfirT[2], thiVfirT[2];
+		double firVsecT[2], secVsecT[2], thiVsecT[2];
 
 		for (int j = 1; j < p->y_size; j++)
 		{
@@ -216,28 +266,30 @@ TEST_F(GpuTest, get_quad_coord)
 			{
 				p->i = i;
 				p->j = j;
-
-				h_quadrAngleType(p, 
-					&first_x1, &second_x1, &third_x1, &first_x2, &second_x2, &third_x2,
-					&first_y1, &second_y1, &third_y1, &first_y2, &second_y2, &third_y2);
+				quadrAngleType(p->a, p->b, p->lb, p->rb, p->bb, p->ub, p->tau, p->currentTimeLevel, p->i,
+					p->x,
+					p->get_real_x_size(),
+					p->j,
+					p->y,
+					p->get_real_y_size(), firVfirT, secVfirT, thiVfirT, firVsecT, secVsecT, thiVsecT);
 				int c = (p->x_size - 1) * (j - 1) + (i - 1);
 
-				bool b1 = (fabs(gpu->first1[2 * c] - first_x1) < error) && (fabs(gpu->first1[2 * c + 1] - first_y1) < error);
+				bool b1 = (fabs(gpu->first1[2 * c] - firVfirT[0]) < error) && (fabs(gpu->first1[2 * c + 1] - firVfirT[1]) < error);
 				ASSERT_TRUE(b1) << "c = " << c << std::endl;
-				bool b2 = (fabs(gpu->second1[2 * c] - second_x1) < error) && (fabs(gpu->second1[2 * c + 1] - second_y1) < error);
+				bool b2 = (fabs(gpu->second1[2 * c] - secVfirT[0]) < error) && (fabs(gpu->second1[2 * c + 1] - secVfirT[1]) < error);
 				ASSERT_TRUE(b2) << "c = " << 2 * c << std::endl;
-				bool b3 = (fabs(gpu->third1[2 * c] - third_x1) < error) && (fabs(gpu->third1[2 * c + 1] - third_y1) < error);
+				bool b3 = (fabs(gpu->third1[2 * c] - thiVfirT[0]) < error) && (fabs(gpu->third1[2 * c + 1] - thiVfirT[1]) < error);
 				ASSERT_TRUE(b3) << "c = " << 2 * c << std::endl;
 
 				ASSERT_TRUE(b1&&b2&&b3) << "c = " << c << std::endl;
 
-				bool b4 = (fabs(gpu->first2[2 * c] - first_x2) < error) && (fabs(gpu->first2[2 * c + 1] - first_y2) < error);
+				bool b4 = (fabs(gpu->first2[2 * c] - firVsecT[0]) < error) && (fabs(gpu->first2[2 * c + 1] - firVsecT[1]) < error);
 				ASSERT_TRUE(b4) << "c = " << 2 * c << std::endl;
 
-				bool b5 = (fabs(gpu->second2[2 * c] - second_x2) < error) && (fabs(gpu->second2[2 * c + 1] - second_y2) < error);
+				bool b5 = (fabs(gpu->second2[2 * c] - secVsecT[0]) < error) && (fabs(gpu->second2[2 * c + 1] - secVsecT[1]) < error);
 				ASSERT_TRUE(b5) << "c = " << 2 * c << std::endl;
 
-				bool b6 = (fabs(gpu->third2[2 * c] - third_x2) < error) && (fabs(gpu->third2[2 * c + 1] - third_y2) < error);
+				bool b6 = (fabs(gpu->third2[2 * c] - thiVsecT[0]) < error) && (fabs(gpu->third2[2 * c + 1] - thiVsecT[1]) < error);
 				ASSERT_TRUE(b6) << "c = " << 2 * c << std::endl;
 
 				ASSERT_TRUE(b3&&b5&&b6) << "c = " << 2 * c << std::endl;
@@ -246,21 +298,79 @@ TEST_F(GpuTest, get_quad_coord)
 		delete p;
 		delete gpu;
 	}
-	std::cout << "Done!" << std::endl;
-	//std::cin.get();
 }
 
-TEST_F(GpuTest, get_quad_coord_te)
+/*TEST_F(gputest, DISABLED_main_test_old)
 {
-	double time_cpu (-1), time_gpu(0);
-	double first_x1(0), second_x1(0), third_x1(0), first_x2(0), second_x2(0), third_x2(0);
-	double first_y1(0), second_y1(0), third_y1(0), first_y2(0), second_y2(0), third_y2(0);
-	int finish_level = 9;
-	int start_level = 8;
+const int finishLevel = 10;
+const int startLevel = 0;
+const double error = 1.0e-15;
+
+for (int level = startLevel; level < finishLevel; ++level)
+{
+std::cout << "level = " << level << std::endl;
+ComputeParameters* p = new ComputeParameters(level, false);
+p->currentTimeLevel = 1;
+TriangleResult* gpu = new TriangleResult(p);
+float t = get_quad_coord(gpu, p);
+printf("gpu time elapsed = %f\n", t);
+double firVfirT[2], secVfirT[2], thiVfirT[2];
+double firVsecT[2], secVsecT[2], thiVsecT[2];
+
+
+for (int j = 1; j < p->y_size; j++)
+{
+for (int i = 1; i < p->x_size; i++)
+{
+p->i = i;
+p->j = j;
+
+quadrAngleType(p->a, p->b, p->lb, p->rb, p->bb, p->ub, p->tau, p->currentTimeLevel, p->i,
+p->x,
+p->get_real_x_size(),
+p->j,
+p->y,
+p->get_real_y_size(), firVfirT, secVfirT, thiVfirT, firVsecT, secVsecT, thiVsecT ) ;
+int c = (p->x_size - 1) * (j - 1) + (i - 1);
+
+bool b1 = (fabs(gpu->first1[2 * c] - firVfirT[0]) < error) && (fabs(gpu->first1[2 * c + 1] - firVfirT[1]) < error);
+ASSERT_TRUE(b1) << "c = " << c << std::endl;
+bool b2 = (fabs(gpu->second1[2 * c] - secVfirT[0]) < error) && (fabs(gpu->second1[2 * c + 1] - secVfirT[1]) < error);
+ASSERT_TRUE(b2) << "c = " << 2 * c << std::endl;
+bool b3 = (fabs(gpu->third1[2 * c] - thiVfirT[0]) < error) && (fabs(gpu->third1[2 * c + 1] - thiVfirT[1]) < error);
+ASSERT_TRUE(b3) << "c = " << 2 * c << std::endl;
+
+ASSERT_TRUE(b1&&b2&&b3) << "c = " << c << std::endl;
+
+bool b4 = (fabs(gpu->first2[2 * c] - firVsecT[0]) < error) && (fabs(gpu->first2[2 * c + 1] - firVsecT[1]) < error);
+ASSERT_TRUE(b4) << "c = " << 2 * c << std::endl;
+
+bool b5 = (fabs(gpu->second2[2 * c] - secVsecT[0]) < error) && (fabs(gpu->second2[2 * c + 1] - secVsecT[1]) < error);
+ASSERT_TRUE(b5) << "c = " << 2 * c << std::endl;
+
+bool b6 = (fabs(gpu->third2[2 * c] - thiVsecT[0]) < error) && (fabs(gpu->third2[2 * c + 1] - thiVsecT[1]) < error);
+ASSERT_TRUE(b6) << "c = " << 2 * c << std::endl;
+
+ASSERT_TRUE(b3&&b5&&b6) << "c = " << 2 * c << std::endl;
+}
+}
+delete p;
+delete gpu;
+}
+}*/
+
+TEST_F(gputest, get_quad_coord_te)
+{
+	double time_cpu(-1), time_gpu(0);
+	double firVfirT[2], secVfirT[2], thiVfirT[2];
+	double firVsecT[2], secVsecT[2], thiVsecT[2];
+	int finish_level = 1;
+	int start_level = 0;
 
 
 	for (int level = start_level; level < finish_level; level++)
 	{
+		printf("level %d \n", level);
 		ComputeParameters* p = new ComputeParameters(level, false);
 		p->currentTimeLevel = 1;
 
@@ -287,9 +397,12 @@ TEST_F(GpuTest, get_quad_coord_te)
 			{
 				p->i = i;
 				p->j = j;
-				h_quadrAngleType(p,
-					&first_x1, &second_x1, &third_x1, &first_x2, &second_x2, &third_x2,
-					&first_y1, &second_y1, &third_y1, &first_y2, &second_y2, &third_y2);
+				quadrAngleType(p->a, p->b, p->lb, p->rb, p->bb, p->ub, p->tau, p->currentTimeLevel, p->i,
+					p->x,
+					p->get_real_x_size(),
+					p->j,
+					p->y,
+					p->get_real_y_size(), firVfirT, secVfirT, thiVfirT, firVsecT, secVsecT, thiVsecT);
 			}
 		}
 
@@ -302,6 +415,106 @@ TEST_F(GpuTest, get_quad_coord_te)
 		delete gpu;
 		delete p;
 	}
+}
+
+
+
+/*TEST_F(gputest, DISABLED_main_test)
+{
+const int finishLevel = 1;
+const int startLevel = 0;
+const double error = 1.0e-8;
+
+for (int level = startLevel; level < finishLevel; ++level)
+{
+std::cout << "level = " << level << std::endl;
+ComputeParameters* p = new ComputeParameters(level, true);
+ASSERT_TRUE(p->result != NULL);
+float gpu_time = solve_at_gpu(p);
+ASSERT_TRUE(gpu_time != -1);
+double* data = _modelDataProvider.GetModelData(level);
+print_matrix(p->get_real_x_size(), p->get_real_y_size(), data);
+printf("%s\n", "");
+print_matrix(p->get_real_x_size(), p->get_real_y_size(), p->result);
+printf("%s\n", "Start testing...");
+for (int i = 0; i < p->get_real_matrix_size(); i++)
+{
+ASSERT_TRUE(fabs(data[i] - p->result[i]) <= error) << i << " " << data[i] << " " << p->result[i] << std::endl;
+}
+
+delete p;
+}
+}*/
+
+TEST_F(gputest, main_test_1tl_boundaries)
+{
+	const int finishLevel = 1;
+	const int startLevel = 0;
+	const double error = 1.0e-8;
+
+	ComputeParameters* p = new ComputeParameters(0, true);
+	ASSERT_TRUE(p->result != NULL);
+	float gpu_time = solve_at_gpu(p);
+	ASSERT_TRUE(gpu_time != -1);
+	double* data = _modelDataProvider.GetModelData1tl(0);
+	print_matrix(p->get_real_x_size(), p->get_real_y_size(), data);
+	printf("%s\n", "");
+	print_matrix(p->get_real_x_size(), p->get_real_y_size(), p->result);
+	printf("%s\n", "Start testing...");
+	for (int i = 0; i < p->get_real_matrix_size(); i++)
+	{
+		int n = i % p->get_real_x_size();
+		int m = i / p->get_real_y_size();
+
+		// расчет границы
+		if (m == 0 || n == 0 || m == p->get_real_y_size() - 1 || n == p->get_real_x_size() - 1)
+		{
+			ASSERT_TRUE(fabs(data[i] - p->result[i]) <= error) << i << " " << data[i] << " " << p->result[i] << std::endl;
+		}
+	}
+
+	delete p;
+}
+
+TEST_F(gputest, main_test_1tl_inner)
+{
+	const int finishLevel = 1;
+	const int startLevel = 0;
+	const double error = 1.0e-8;
+
+	ComputeParameters* p = new ComputeParameters(0, true);
+	ASSERT_TRUE(p->result != NULL);
+	float gpu_time = solve_at_gpu(p);
+	ASSERT_TRUE(gpu_time != -1);
+	double* data = _modelDataProvider.GetModelData1tl(0);
+	printf("%d\n", p->get_real_x_size());
+	print_matrix(p->get_real_x_size(), p->get_real_y_size(), data, 5);
+	printf("%s\n", "");
+	print_matrix(p->get_real_x_size(), p->get_real_y_size(), p->result, 5);
+	printf("%s\n", "Start testing...");
+	for (int i = 0; i < p->get_real_matrix_size(); i++)
+	{
+		int n = i % p->get_real_x_size();
+		int m = i / p->get_real_y_size();
+
+		// расчет границы
+		if (m == 0 || n == 0 || m == p->get_real_y_size() - 1 || n == p->get_real_x_size() - 1)
+		{
+			continue;
+		}
+		ASSERT_TRUE(fabs(data[i] - p->result[i]) <= error) << i << " " << data[i] << " " << p->result[i] << std::endl;
+	}
+
+	delete p;
+}
+
+TEST_F(gputest, gen_1tl)
+{
+	const int finishLevel = 1;
+	const int startLevel = 0;
+	const double error = 1.0e-8;
+	double* tl1 = GetCpuToLevel(0);
+	//print_matrix(11, 11, tl1);	
 }
 
 class CpuVersusGpuFunctionalFemTest : public TestBase
@@ -333,41 +546,6 @@ TEST_F(CpuVersusGpuFunctionalFemTest, AnalyticSolutionNotEqualsTest)
 	double cpu = analytSolut(p->a, p->lb, p->rb, p->bb, p->ub, p->tau, p->x[1],
 		p->y[2]);
 	double gpu = h_analytSolut(p->tau, p->x[1], p->y[1]);
-	ASSERT_NE(cpu, gpu);
-	delete p;
-}
-
-TEST_F(CpuVersusGpuFunctionalFemTest, DataInitializationAnalyticSolutionEqualsTest)
-{
-	ComputeParameters* p = new ComputeParameters(0, false);
-	double cpu = initDataOfSol(p->a, p->lb, p->rb, p->bb, p->ub, 1, p->x, 2, p->y);
-	double gpu = d_initDataOfSol(p, 1, 2);
-	ASSERT_EQ(cpu, gpu);
-	delete p;
-}
-
-TEST_F(CpuVersusGpuFunctionalFemTest, F_Function_EqualsTest)
-{
-	ComputeParameters* p = new ComputeParameters(0, false);
-	int currentTimeLevel = 1;
-	int i = 1;
-	int j = 1;
-	double cpu = f_function(p->a, p->b, p->lb, p->rb, p->bb, p->ub, p->tau,
-		currentTimeLevel, i, p->x, p->x_size, j, p->y, p->y_size);
-	double gpu = h_f_function(p, currentTimeLevel, i, j);
-	ASSERT_EQ(cpu, gpu);
-	delete p;
-}
-
-TEST_F(CpuVersusGpuFunctionalFemTest, F_Function_NotEqualsTest)
-{
-	ComputeParameters* p = new ComputeParameters(0, false);
-	int currentTimeLevel = 1;
-	int i = 1;
-	int j = 1;
-	double cpu = f_function(p->a, p->b, p->lb, p->rb, p->bb, p->ub, p->tau,
-		currentTimeLevel, i, p->x, p->x_size, j + 2, p->y, p->y_size);
-	double gpu = h_f_function(p, currentTimeLevel, i + 1, j);
 	ASSERT_NE(cpu, gpu);
 	delete p;
 }
